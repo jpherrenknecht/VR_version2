@@ -13,7 +13,7 @@ import time
 import xarray as xr
 import pandas as pd
 from uploadgrib import *
-from polaires_maxitri2 import *
+from polaires_maxitri import *
 from operator import itemgetter
 tic = time.time()
 
