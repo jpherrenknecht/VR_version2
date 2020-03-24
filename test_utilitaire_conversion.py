@@ -2,6 +2,7 @@ latitude = '46-44-60-N'
 longitude = '03-12-28-W'
 
 def chaine_to_dec(latitude,longitude):
+    ''' Convertit deux chaines latitude longitude en tuple (x,y)'''
     degre = int(latitude[0:2])
     minutes = int(latitude[3:5])
     secondes = int(latitude[6:8])
