@@ -124,8 +124,12 @@ if __name__ == '__main__':
     else:
         filenamehd5 = "gribs/grib_gfs_" + dategrib + ".hdf5"
 
+
+
+
 # Données pour prevision en UTC
     dateprev=('07-03-2020T17-40-00')
+    #dateprev=time.strftime("%d-%m-%YT%H-%M-%S", time.gmtime(time.time()))
     latitude  = -48  # Psitif si sud
     longitude = -7  # Positif si est
 
@@ -146,10 +150,30 @@ if __name__ == '__main__':
 
 
 
-#Fichier commite en mastter
+#Fichier commite en master
+dateprev = ('07-03-2020T17-40-00')
 
 
+instant=time.time()
+print (' time en s ',instant)
 
+formate=time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(instant))
+format2=time.strftime("%d-%m-%YT%H-%M-%S", time.gmtime(time.time()))
+
+
+print('temps formate',formate)
+
+print('instant UTC formate',format2)
+
+#
+
+tij = time.mktime((2020, 3, 24, 00, 00, 00, 0, 0, 0))
+
+print ('debut journee',tij)
+
+print (datetime.date.today())
+#: permet de récupérer l'année, le mois (entre 1 et 12), le jour, l'heure, la minute et la seconde.
+#mise a jour automatique du grib
 
 
 
