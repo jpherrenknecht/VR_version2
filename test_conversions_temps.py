@@ -3,6 +3,14 @@ import time
 from pytz import timezone
 # https://gist.github.com/YannBouyeron/1083709633f78e6804602a7ac6ae4bfa
 
+a=13
+
+b=str(a//10)+str(a%10)
+print('b',b)
+
+
+
+
 
 instant=time.time()
 print()
@@ -38,6 +46,13 @@ print('sec',sec)
 
 # A l'inverse
 
+tg=time.gmtime()
+heureg=tg[3]
+print (' heuregmt', heureg)
+
+
+
+
 t1 = time.strftime("%A %d %B %Y %H:%M:%S")
 print('t1 :',t1)
 
@@ -51,7 +66,7 @@ print('le meme formate :',formate)
 #debut du jour courant en s
 t=time.localtime()
 debut_jour_local=time.mktime((t[0], t[1], t[2], 0, 0, 0, 0, 0, 0))
-print('\nDebut journee en s ',debut_jour)
+print('\nDebut journee en s ',debut_jour_local)
 formate=time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(debut_jour_local))
 
 
@@ -62,7 +77,7 @@ print('Decalage horaire en h',t[3]-utc[3])
 
 print('le meme formate :',formate)
 
-formate=time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(debut_jour))
+formate=time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(debut_jour_local))
 print('le meme formate en UTC :',formate)
 
 # toutes les previsions sont connues a 11 h (gfs 6z) - 17 h (12) -23h (18h)  et 5h (00)  UTC
@@ -106,14 +121,45 @@ heures=['06','12','18','00']
 print('b',heures[((a+12)%24)//6])
 print()
 
-tutc=time.gmtime()
+# tutc=time.gmtime()
+# tgmt=time.gmtime()
+# heuregmt=tg[3]
+
+
+
+
+# on met le grib a jour aux heures suivantes en UTC
+heures=['06','12','18','24']
 t=time.localtime()
+utc=time.gmtime()
+decalage=t[3]-utc[3]
+heure_grib=heures[((t[3]+decalage+11)%24)//6]
+date2grib=str(t[2]//10)+str(t[2]%10)+'-'+str(t[1]//10) + str(t[1]%10)+'-'+str(t[0])+'T'+heure_grib+'-00-00'
 
-heures=['06','12','18','00']
-heure_grib=heures[((t[3]+12)%24)//6]
-date2grib=str(t[2])+'-'+str(t[1])+'-'+str(t[0])+'T'+heure_grib+'-00-00'
 
+
+
+str(a//10)+str(a%10)
+
+
+
+print(decalage)
+print('heure dernier grib disponible',heure_grib)
 print(date2grib)
 
-print('Decalage horaire',t[3]-tutc[3])
+
+
+
+
+
+
+
+
+# heures=['06','12','18','00']
+# heure_grib=heures[((t[3]+12)%24)//6]
+#
+#
+#
+#
+print('Decalage horaire',t[3]-utc[3])
 

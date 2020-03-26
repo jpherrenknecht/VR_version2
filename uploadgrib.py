@@ -115,23 +115,23 @@ def prevision(tig,A,V,tp,latitude,longitude):
 
 if __name__ == '__main__':
 
-#chargement des gribs et sauvegarde sous hd5 a ne faire que lorsque l'on change de grib
-    dategrib=('07-03-2020T06-00-00')
-    # Mise a jour sur demande
-    maj=False
-    if maj==True :
+    heures=['06','12','18','24']
+    t=time.localtime()
+    utc=time.gmtime()
+    decalage=t[3]-utc[3]
+    heure_grib=heures[((t[3]+decalage+11)%24)//6]
+    dategrib=str(t[2]//10)+str(t[2]%10)+'-'+str(t[1]//10) + str(t[1]%10)+'-'+str(t[0])+'T'+heure_grib+'-00-00'
+    filenamehd5 = "gribs/grib_gfs_" + dategrib + ".hdf5"
+    print ('nom fichier',filenamehd5)
+    if os.path.exists(filenamehd5)==False :
         filenamehd5 = chargement_grib(dategrib)
-    else:
-        filenamehd5 = "gribs/grib_gfs_" + dategrib + ".hdf5"
-
-
 
 
 # Données pour prevision en UTC
-    dateprev=('07-03-2020T17-40-00')
+    dateprev=('25-03-2020T22-00-00')
     #dateprev=time.strftime("%d-%m-%YT%H-%M-%S", time.gmtime(time.time()))
     latitude  = -48  # Psitif si sud
-    longitude = -7  # Positif si est
+    longitude = -13.5  # Positif si est
 
     tp=chainetemps_to_int(dateprev)[0]                  # calcul du moment de la prevision en s
     tp_formate=chainetemps_to_int(dateprev)[9]          # utilisation pour impressions

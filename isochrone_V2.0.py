@@ -6,10 +6,11 @@ Created on Mon Dec 23 08:52:41 2019
 @author: jph
 """
 # test
-import numpy as np
-import math
-import matplotlib.pyplot as plt
+import os
 import time
+import math
+import numpy as np
+import matplotlib.pyplot as plt
 import xarray as xr
 import pandas as pd
 from uploadgrib import *
@@ -30,12 +31,12 @@ tic = time.time()
 # pour le vent on parle de vitesses et angles
 
 # depart
-latitude = '46-45-14-N'
-longitude = '03-12-28-W'
+latitude = '48-09-06-N'
+longitude = '13-29-02-W'
 
 # arrivee
-latitude_a = '47-03-00-N'
-longitude_a = '16-41-00-W'
+latitude_a = '51-00-00-N'
+longitude_a = '28-51-00-W'
 
 angle_objectif = 45
 angle_twa_pres = 40
@@ -147,7 +148,7 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
     numero_dernier_point = (isochrone[-1][4])  # dernier point isochrone precedent
     numero_premier_point = isochrone[-1][4] - pt_init_cplx.size
 
-    print('\n Isochrone N° {} '.format(numero_iso))
+    #print('\n Isochrone N° {} '.format(numero_iso))
 
     for i in range(pt_init_cplx.size):
         vit_vent, angle_vent = prevision(tig, U, V, temps_initial_iso, pt_init_cplx[i].imag, pt_init_cplx[
@@ -227,18 +228,19 @@ dateprev=time.strftime("%d-%m-%YT%H-%M-%S", time.gmtime(time.time()))
 
 # ************************************* Grib   *************************************************************************
 
-# chargement des gribs et sauvegarde sous hd5 a ne faire que lorsque l'on change de grib
-dategrib = ('23-03-2020T18-00-00')
-# Mise a jour sur demande
-maj = False
-if maj == True:
-    filenamehd5 = chargement_grib(dategrib)
-else:
-    filenamehd5 = "gribs/grib_gfs_" + dategrib + ".hdf5"
+# on met le grib a jour aux heures suivantes en UTC
 
-# recherche angle et force du vent au point de depart
-# Données pour prevision en UTC
-#dateprev = ('23-03-2020T23-30-00')
+heures=['06','12','18','24']
+t=time.localtime()
+utc=time.gmtime()
+decalage=t[3]-utc[3]
+heure_grib=heures[((t[3]+decalage+11)%24)//6]
+dategrib=str(t[2]//10)+str(t[2]%10)+'-'+str(t[1]//10) + str(t[1]%10)+'-'+str(t[0])+'T'+heure_grib+'-00-00'
+filenamehd5 = "gribs/grib_gfs_" + dategrib + ".hdf5"
+print ('nom fichier',filenamehd5)
+if os.path.exists(filenamehd5)==False :
+    filenamehd5 = chargement_grib(dategrib)
+
 
 longitude = d[0]  # Positif vers l est
 latitude = d[1]  # Positif vers le nord
@@ -259,16 +261,16 @@ print()
 plt.figure('trace2')
 plt.xlabel('Longitudes')
 plt.ylabel('Latitudes')
-plt.title('Route suivie')
+plt.title('Route A suivre')
 
 # limy=(min(d[1],a[1]),max(d[1],a[1]))
 
 plt.xlim(-10 + min(d[0], a[0]), max(d[0], a[0]) + 10)  # Définit les limites du graphique en x
-plt.ylim(-10 + min(d[1], a[1]), max(d[1], a[1]) + 10)  # Définit les limites du graphique en y
+plt.ylim(   - (max(d[1], a[1]) + 10 )         ,   -( -10 + min(d[1], a[1]))                    )  # Définit les limites du graphique en y
 plt.grid(True)
 
-plt.plot(d[0], d[1], 'bo')  # marqueur bleu rond depart
-plt.plot(a[0], a[1], 'ro')  # marqueur rouge arrivee
+plt.plot(d[0], -d[1], 'bo')  # marqueur bleu rond depart
+plt.plot(a[0], -a[1], 'ro')  # marqueur rouge arrivee
 
 # **********************************************************************************************************************
 # **********************************************************************************************************************
@@ -278,19 +280,18 @@ while but == False:
     # for k in range (5):
     pt1_cpx, temps, isochrone, but, indice = f_isochrone(pt1_cpx, tp, isochrone)
     # print ('But atteint',but)
-    plot2 = plt.plot(pt1_cpx.real, pt1_cpx.imag, 'r.')
+    plot2 = plt.plot(pt1_cpx.real, -pt1_cpx.imag, color = 'red', linewidth = 1)
 
 # retracage chemin
 a = int(indice)
 
-plt.plot(isochrone[int(a)][0], isochrone[int(a)][1], 'g.')  # marqueur bleu rond depart
-for i in range(int(isochrone[-1][2])):
-    a = dico[a]
-    plt.plot(isochrone[int(a)][0], isochrone[int(a)][1], 'g.')  # marqueur bleu rond depart
-    print(a)
-print(isochrone[138][0])
-
-
+plt.plot(isochrone[int(a)][0], -isochrone[int(a)][1], 'g.')  # trace des isochrones
+n=int(isochrone[-1][2])
+for i in range(n):
+    a = int(dico[a])
+    b=n-a
+    plt.plot(isochrone[a][0], -isochrone[a][1], 'g.')  # marqueur bleu rond depart
+    print ('{}  {}  {}  {}  {}  '.format(isochrone [b][2],isochrone [b][3],isochrone [b][4],isochrone [b][5],isochrone [b][6] ))
 
 #   ****************************************Controle du temps dexecution **********************************
 tac = time.time()
