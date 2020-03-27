@@ -90,8 +90,7 @@ def rangecap(direction_objectif, d_vent, angle_objectif, angle_twa_pres, angle_t
 
 def calcul_points(D, tp, d_t, angle_vent, vit_vent, range, polaires):
     '''tp temps au point D; d_t duree du deplacement en s ; angle du vent au point ; Vitesse du vent au point ; caps a simuler  ; polaires du bateau  '''
-    points_arrivee = np.zeros((range.shape),
-                              dtype=complex)  # Initialisation du tableau  contenant les point d'arrivee sous forme complexe
+    points_arrivee = np.zeros((range.shape),   dtype=complex)  # Init tableau   points d'arrivee sous forme complexe
     range_radian = (-range + 90) * math.pi / 180
     vit_noeuds = polaire2_vect(polaires, vit_vent, angle_vent, range)  # Vitesses suivant les differents caps
     latitude = D.imag  # Latitude du pointpour calculer le deplacement sur le parallele avec le cos
@@ -147,8 +146,9 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
     numero_iso = int(isochrone[-1][2] + 1)
     numero_dernier_point = (isochrone[-1][4])  # dernier point isochrone precedent
     numero_premier_point = isochrone[-1][4] - pt_init_cplx.size
+    t_iso_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(temps_initial_iso))
 
-    #print('\n Isochrone N° {} '.format(numero_iso))
+    print(' Isochrone N° {} heure {}'.format(numero_iso,t_iso_formate)  )
 
     for i in range(pt_init_cplx.size):
         vit_vent, angle_vent = prevision(tig, U, V, temps_initial_iso, pt_init_cplx[i].imag, pt_init_cplx[
@@ -275,17 +275,17 @@ plt.plot(a[0], -a[1], 'ro')  # marqueur rouge arrivee
 # **********************************************************************************************************************
 # **********************************************************************************************************************
 pt1_cpx = Depart
+temps=tp
 but = False
 while but == False:
     # for k in range (5):
-    pt1_cpx, temps, isochrone, but, indice = f_isochrone(pt1_cpx, tp, isochrone)
+    pt1_cpx, temps, isochrone, but, indice = f_isochrone(pt1_cpx, temps, isochrone)
     # print ('But atteint',but)
     plot2 = plt.plot(pt1_cpx.real, -pt1_cpx.imag, color = 'red', linewidth = 1)
 
 # retracage chemin
 a = int(indice)
-
-plt.plot(isochrone[int(a)][0], -isochrone[int(a)][1], 'g.')  # trace des isochrones
+plt.plot(isochrone[a][0], -isochrone[a][1], 'g.')  # trace des isochrones
 n=int(isochrone[-1][2])
 for i in range(n):
     a = int(dico[a])
