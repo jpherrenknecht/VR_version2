@@ -146,7 +146,7 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
     numero_iso = int(isochrone[-1][2] + 1)
     numero_dernier_point = (isochrone[-1][4])  # dernier point isochrone precedent
     numero_premier_point = isochrone[-1][4] - pt_init_cplx.size
-    t_iso_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(temps_initial_iso))
+    t_iso_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(temps_initial_iso+delta_temps))
 
     print(' Isochrone N° {} heure {}'.format(numero_iso,t_iso_formate)  )
 
@@ -158,6 +158,10 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
 
         n_pts_x, nouveau_temps = calcul_points(pt_init_cplx[i], temps_initial_iso, delta_temps, angle_vent, vit_vent,
                                                range_caps, polaires)  # Calcul de la nouvelle serie generale de points
+
+#  il faut garder en memoire le cap suivi ou le recalculer ensuite
+#***********************************************************************************************************************
+
 
         # la tous les nouveaux points sont calcules maintenant on expurge et on stocke
         for j in range(len(n_pts_x)):
@@ -230,16 +234,22 @@ dateprev=time.strftime("%d-%m-%YT%H-%M-%S", time.gmtime(time.time()))
 
 # on met le grib a jour aux heures suivantes en UTC
 
-heures=['06','12','18','24']
+heures=['00','06','12','18',]
 t=time.localtime()
 utc=time.gmtime()
 decalage=t[3]-utc[3]
-heure_grib=heures[((t[3]+decalage+11)%24)//6]
+#print ('Decalage',decalage )
+
+heure_grib=heures[ ((utc[3]+19)//6)%4]
+
 dategrib=str(t[2]//10)+str(t[2]%10)+'-'+str(t[1]//10) + str(t[1]%10)+'-'+str(t[0])+'T'+heure_grib+'-00-00'
 filenamehd5 = "gribs/grib_gfs_" + dategrib + ".hdf5"
-print ('nom fichier',filenamehd5)
+print ('Nom fichier hdf5 : ',filenamehd5)
 if os.path.exists(filenamehd5)==False :
     filenamehd5 = chargement_grib(dategrib)
+
+
+
 
 
 longitude = d[0]  # Positif vers l est
@@ -284,14 +294,25 @@ while but == False:
     plot2 = plt.plot(pt1_cpx.real, -pt1_cpx.imag, color = 'red', linewidth = 1)
 
 # retracage chemin
-a = int(indice)
-plt.plot(isochrone[a][0], -isochrone[a][1], 'g.')  # trace des isochrones
+a = int(indice)                 #indice du point de la route la plus courte
+#plt.plot(isochrone[a][0], -isochrone[a][1], 'k.')  # trace des points de la route
 n=int(isochrone[-1][2])
+
+print('\nRoute à suivre')
+
+route=[]
 for i in range(n):
     a = int(dico[a])
-    b=n-a
-    plt.plot(isochrone[a][0], -isochrone[a][1], 'g.')  # marqueur bleu rond depart
-    print ('{}  {}  {}  {}  {}  '.format(isochrone [b][2],isochrone [b][3],isochrone [b][4],isochrone [b][5],isochrone [b][6] ))
+    route.append(a)
+#     # TODO: ici il faudrait recalculer les caps pour pouvoir affficher la route
+#     #************************************
+#     #************************************
+
+for i in reversed(route):
+    a= route[i]
+    print (' \t{:4.2f}\t{:4.2f}\t{:4.0f} \t{} \t{:4.2f} \t{:4.2f} \t{:4.2f}'.format(isochrone[i][0], -isochrone[i][1],isochrone[i][2],isochrone[i][3],isochrone[i][4],isochrone[i][5],isochrone[i][6]))
+    plt.plot(isochrone[a][0], -isochrone[a][1], 'k.')  # marqueur bleu rond depart
+
 
 #   ****************************************Controle du temps dexecution **********************************
 tac = time.time()

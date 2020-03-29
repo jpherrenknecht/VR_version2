@@ -3,6 +3,31 @@ import time
 from pytz import timezone
 # https://gist.github.com/YannBouyeron/1083709633f78e6804602a7ac6ae4bfa
 
+
+
+heures=['00','06','12','18']
+t=time.localtime()
+utc=time.gmtime()
+decalage=t[3]-utc[3]
+print ('Decalage',decalage )
+
+
+print ('utc',utc[3])
+
+heure_grib=heures[ ((utc[3]+19)//6)%4]
+
+print ('heure_grib',heure_grib)
+
+
+
+
+
+
+
+
+
+
+
 a=13
 
 b=str(a//10)+str(a%10)

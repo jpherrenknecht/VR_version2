@@ -115,11 +115,13 @@ def prevision(tig,A,V,tp,latitude,longitude):
 
 if __name__ == '__main__':
 
-    heures=['06','12','18','24']
+    heures=['00','06','12','18']
     t=time.localtime()
     utc=time.gmtime()
     decalage=t[3]-utc[3]
-    heure_grib=heures[((t[3]+decalage+11)%24)//6]
+
+    heure_grib=heures[ ((utc[3]+13)//6)%4 ]
+
     dategrib=str(t[2]//10)+str(t[2]%10)+'-'+str(t[1]//10) + str(t[1]%10)+'-'+str(t[0])+'T'+heure_grib+'-00-00'
     filenamehd5 = "gribs/grib_gfs_" + dategrib + ".hdf5"
     print ('nom fichier',filenamehd5)
@@ -196,7 +198,7 @@ print (datetime.date.today())
 
 
 
-    # pour le gfs 00
+    # pour le gfs 06
     # Debut des modifications a 9h30 UTC - 12h de donnees toutes les 10 mn
     #                         a 10h 30    1 semaine de donnees sont a jour
     #                         a 11 h      toutes les previsions sont connues
