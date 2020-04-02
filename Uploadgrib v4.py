@@ -1,10 +1,19 @@
-from urllib.request import urlretrieve
-import xarray as xr
+import os
 import time
 import math
 import numpy as np
+from urllib.request import urlretrieve
+import xarray as xr
 import h5py
-import os
+from scipy.interpolate import RegularGridInterpolator
+
+
+# les gribs complets sont disponibles en heure d'ete à
+# 13h(gfs06) - 19(gfs12) -  01(gfs18) - 07 h (gfs00)
+
+ix=np.arange(129) #temps
+iy=np.arange(181) #latitudes
+iz=np.arange(360) #longitudes
 
 def interpol2(tableau, y, x):
     # LES INDICES VARIENT DE 1 EN 1,  tableau donne les valeurs tableau[y,x]
@@ -55,6 +64,24 @@ def chainetemps_to_int(chainetemps):
     formate_local=time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(t_s_local))
     #t_s est un temps en secondes locales
     return t_s_local,day,month,year,hour,mins,secs,date,strhour,formate_local,t_s_utc
+
+def chaine_to_dec(latitude, longitude):
+    ''' Transforme les chaines latitude et longitude en un tuple (x,y) '''
+    degre = int(latitude[0:2])
+    minutes = int(latitude[3:5])
+    secondes = int(latitude[6:8])
+    lat = degre + minutes / 60 + secondes / 3600
+    if latitude[9] == 'N':
+        lat = -lat
+    degre = int(longitude[0:2])
+    minutes = int(longitude[3:5])
+    secondes = int(longitude[6:8])
+    long = degre + minutes / 60 + secondes / 3600
+    if longitude[9] == 'W':
+        long = -long
+
+    return (long, lat)
+
 
 def chargement_grib():
 
@@ -117,6 +144,7 @@ def chargement_grib():
 
     return  filenamehd5
 
+
 def ouverture_fichier(filename):
     # ouverture du fichier
     f2 = h5py.File(filename, 'r')
@@ -127,172 +155,52 @@ def ouverture_fichier(filename):
     V=np.abs(GR)*1.94384
     #todo ajoute 360 pour pb interpolation entre 359 et 1 sans effet
     U=(270-np.angle(GR,deg=True))%360
+    # voir a fermer le fichier
 
-    return tig,U,V
-
-
-
+    return tig,U,V,GR
 
 
 def prevision(tig,X,Y,tp,latitude,longitude):
-    itemp =(tp - tig) / 3600 / 3
-    ilati = (latitude + 90)
-    ilong = ( longitude)%360
-    print ('indices',itemp,ilati,ilong)
-    vit_vent_n =interpol3(Y,itemp,ilati,ilong)
-    angle_vent =interpol3(X,itemp,ilati,ilong)
-
+    fn1 = RegularGridInterpolator((ix, iy, iz), Y)
+    fn2 = RegularGridInterpolator((ix, iy, iz), X)
+    fn3 = RegularGridInterpolator((ix, iy, iz), GR)
+    itemp =((tp - tig) / 3600/3)
+    ilati =( (latitude + 90))
+    ilong = (( longitude)%360)
+    print('indices', itemp, ilati, ilong)
+    vit_vent_n = fn1( (itemp, ilati, ilong))
+    angle_vent = fn2(( itemp, ilati, ilong))
+    vcplx= fn3(( itemp, ilati, ilong))
+    vit_vent_n =np.abs(vcplx)*1.94384
+    angle_vent =(270-np.angle(vcplx,deg=True))%360
+    # print ('indices',itemp,ilati,ilong)
+    # vit_vent_n =Y[itemp][ilati][ilong]
+    # angle_vent =X[itemp][ilati][ilong]
     return vit_vent_n, angle_vent
 
 
-def chaine_to_dec(latitude, longitude):
-    ''' Transforme les chaines latitude et longitude en un tuple (x,y) '''
-    degre = int(latitude[0:2])
-    minutes = int(latitude[3:5])
-    secondes = int(latitude[6:8])
-    lat = degre + minutes / 60 + secondes / 3600
-    if latitude[9] == 'N':
-        lat = -lat
-    degre = int(longitude[0:2])
-    minutes = int(longitude[3:5])
-    secondes = int(longitude[6:8])
-    long = degre + minutes / 60 + secondes / 3600
-    if longitude[9] == 'W':
-        long = -long
-
-    return (long, lat)
 
 
-
-
-
-
-#**********************************************************************************************************************
-#**********************************************************************************************************************
 if __name__ == '__main__':
-    t = time.localtime()
-    instant = time.time()
-    instant_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(instant))
-    filenamehd5=chargement_grib()
-    tig, U, V = ouverture_fichier(filenamehd5)
+    filename=chargement_grib()
+    tig,X,Y,GR=ouverture_fichier(filename)
+
+    print ('shapex',np.shape(X))
 
 
-# Realisation d'une prevision
-#
-#     latitude = -42.75 # Positif si sud
-#     longitude = -58.5  # Positif si est
 
-    # Depart
     latitude_d = '39-00-00-N'
     longitude_d = '64-00-00-W'
-
-    # Arrivee
-    latitude_a = '40-40-00-N'
-    longitude_a = '58-45-00-W'
-
-    d = chaine_to_dec(latitude_d, longitude_d)  # conversion des latitudes et longitudes en tuple
-    a = chaine_to_dec(latitude_a, longitude_a)
-
-    print ('depart',d)
-    print ('arrivee',a)
-    print('\nDate et Heure du grib  en UTC  :', time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(tig)))
-
-
-    dateprev = ('01-04-2020 17-00-00')    #  a indiquer en local
+    dateprev = ('01-04-2020 15-30-00')  # a indiquer en local
 
     dateprev_s = chainetemps_to_int(dateprev)[10]
     dateprev_formate = chainetemps_to_int(dateprev)[9]
+    d = chaine_to_dec(latitude_d, longitude_d)  # co
 
-    print('parametres', tig,dateprev_s, d[1], d[0])
-    vit_vent_n, angle_vent=prevision(tig, U, V, dateprev_s, d[1], d[0])
+
+# on essaie avec des valeurs entieres
+    vit_vent_n, angle_vent=prevision(tig,X,Y,dateprev_s,d[1],d[0])
     print('\nLe {} heure locale Pour latitude {:6.2f} et longitude{:6.2f} '.format(dateprev_formate, d[1], d[0]))
     print('\tVitesse du vent {:6.3f} Noeuds'.format(vit_vent_n))
     print('\tAngle du vent   {:6.1f} °'.format(angle_vent))
     print()
-
-
-
-    # Impression des resultats
-    vit_vent_n, angle_vent = prevision(tig, U, V, instant, d[1], d[0])
-    print('\nLe {} heure locale Pour latitude {:6.2f} et longitude{:6.2f} '.format(instant_formate,d[1], d[0] ))
-    print('\tVitesse du vent {:6.3f} Noeuds'.format(vit_vent_n))
-    print('\tAngle du vent   {:6.1f} °'.format(angle_vent))
-
-
-    #print('instant_formate',instant_formate)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # print()
-    # print()
-    # print('Heure de la prevision en local :', dateprev_formate)
-    #
-    # print('moment de la prevision en s par fonction extraction ', dateprev_s)
-    # print('moment de la prevision en s par time time ', instant)
-    # print('ecart en s \t',dateprev_s-instant)
-    # ecart_s = time.time() - tig
-    # print('ecart en s avec le grib\t', ecart_s)
-    # print('ecart en h {} {}mn\t'.format(ecart_s // 3600, (ecart_s % 3600) // 60))
-
-    # tp_local = chainetemps_to_int(dateprev)[1]
-    # tp_local_formate = chainetemps_to_int(dateprev)[10]  # moment de la prevision  en local formate
-
-    # dateprev=time.strftime("%d-%m-%YT%H-%M-%S", time.localtime(time.time()))
-    # print ( 'temps initial grib en s ',tig)
-    # print('temps instant      en s ', instant)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # localtime_grib_s = time.mktime((t[0],t[1],t[2],int(heure_grib)+1, 0, 0, 0, 0, 0))
-    # #todo je n'ai toujours pas compris le pourquoi du +1 mais necessaire
-    # print('heure du grib en secondes locale\t',localtime_grib_s)
-    # format1 = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(localtime_grib_s))
-    #
-    # print ('heure du grib en heure locale\t',format1)
-    # format3 = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(time.time()))
-    #
-    # print('heure  locale\t\t\t\t\t', format3)
-    #

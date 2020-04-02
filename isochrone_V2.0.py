@@ -30,13 +30,8 @@ tic = time.time()
 # les angles sont des angles trigo
 # pour le vent on parle de vitesses et angles
 
-# depart
-latitude = '48-09-06-N'
-longitude = '13-29-02-W'
 
-# arrivee
-latitude_a = '51-00-00-N'
-longitude_a = '28-51-00-W'
+
 
 angle_objectif = 45
 angle_twa_pres = 40
@@ -216,56 +211,54 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
     return ptn_cplx, nouveau_temps, isochrone, but, indice
 
 
-# ************************************   Fin des Fonctions   ***********************************************************
+
+
+
+# ************************************   Fin des Fonctions   **********************************************************
+
 # ************************************   Initialisations      **********************************************************
 
-d = chaine_to_dec(latitude, longitude)  # conversion des latitudes et longitudes en tuple
-a = chaine_to_dec(latitude_a, longitude_a)
-D = cplx(d)  # transformation des tuples des points en complexes
-A = cplx(a)
-Depart = np.array([[d[0] + d[1] * 1j]])    # le depart est mis sous forme d'un tableau complexe
 
+
+
+# Depart
+latitude_d = '38-52-04-N'
+longitude_d = '64-12-30-W'
+
+# Arrivee
+latitude_a = '25-00-00-N'
+longitude_a = '63-00-00-W'
+
+d = chaine_to_dec(latitude_d, longitude_d)  # conversion des latitudes et longitudes en tuple
+ar = chaine_to_dec(latitude_a, longitude_a)
+
+D = cplx(d)  # transformation des tuples des points en complexes
+A = cplx(ar)
+Depart = np.array([[d[0] + d[1] * 1j]])    # le depart est mis sous forme d'un tableau complexe
 # Initialisation du tableau des points d'isochrones
 isochrone = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
-
-dateprev=time.strftime("%d-%m-%YT%H-%M-%S", time.gmtime(time.time()))
+print ('depart',d)
+print ('arrivee',ar)
 
 # ************************************* Grib   *************************************************************************
 
-# on met le grib a jour aux heures suivantes en UTC
+t = time.localtime()
+instant = time.time()
+filenamehd5=chargement_grib()
+tig, U, V = ouverture_fichier(filenamehd5)
+instant_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(instant))
 
-heures=['00','06','12','18',]
-t=time.localtime()
-utc=time.gmtime()
-decalage=t[3]-utc[3]
-#print ('Decalage',decalage )
+vit_vent_n, angle_vent=prevision(tig, U, V, instant, d[1], d[0])
 
-heure_grib=heures[ ((utc[3]+19)//6)%4]
-
-dategrib=str(t[2]//10)+str(t[2]%10)+'-'+str(t[1]//10) + str(t[1]%10)+'-'+str(t[0])+'T'+heure_grib+'-00-00'
-filenamehd5 = "gribs/grib_gfs_" + dategrib + ".hdf5"
-print ('Nom fichier hdf5 : ',filenamehd5)
-if os.path.exists(filenamehd5)==False :
-    filenamehd5 = chargement_grib(dategrib)
-
-
-
-
-
-longitude = d[0]  # Positif vers l est
-latitude = d[1]  # Positif vers le nord
-
-tp = chainetemps_to_int(dateprev)[0]  # calcul du moment de la prevision en s
-tp_formate = chainetemps_to_int(dateprev)[9]  # Formatage du temps pour impressions
-tig, U, V = ouverture_fichier(filenamehd5)  # ouverture  hd5 et recuperation des valeurs angle et vitesse
-
-# # Impression des données
-print('\nDate et Heure du grib  :', time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(tig)))
-vit_vent, angle_vent = prevision(tig, U, V, tp, latitude, longitude)  # Calcul de la prevision au point de depart
-
-print('\n Depart Le {}  latitude {:6.2f} et longitude {:6.2f}'.format(tp_formate, latitude, longitude))
-print('\tVitesse du vent {:6.3f} Noeuds Angle {:6.1f} °'.format(vit_vent, angle_vent))
+# Impression des resultats
+print('Date et Heure du grib  en UTC  :', time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(tig)))
+print('\nLe {} heure locale Pour latitude {:6.2f} et longitude{:6.2f} '.format(instant_formate,d[1], d[0] ))
+print('\tVitesse du vent {:6.3f} Noeuds'.format(vit_vent_n))
+print('\tAngle du vent   {:6.1f} °'.format(angle_vent))
 print()
+
+
+
 
 # ***********************************Calcul des isochrones et Trace du graphique ********************************************
 plt.figure('trace2')
@@ -275,17 +268,17 @@ plt.title('Route A suivre')
 
 # limy=(min(d[1],a[1]),max(d[1],a[1]))
 
-plt.xlim(-10 + min(d[0], a[0]), max(d[0], a[0]) + 10)  # Définit les limites du graphique en x
-plt.ylim(   - (max(d[1], a[1]) + 10 )         ,   -( -10 + min(d[1], a[1]))                    )  # Définit les limites du graphique en y
+plt.xlim(-10 + min(d[0], ar[0]), max(d[0], ar[0]) + 10)  # Définit les limites du graphique en x
+plt.ylim(   - (max(d[1], ar[1]) + 10 )         ,   -( -10 + min(d[1], ar[1]))                    )  # Définit les limites du graphique en y
 plt.grid(True)
 
 plt.plot(d[0], -d[1], 'bo')  # marqueur bleu rond depart
-plt.plot(a[0], -a[1], 'ro')  # marqueur rouge arrivee
+plt.plot(ar[0], -ar[1], 'ro')  # marqueur rouge arrivee
 
 # **********************************************************************************************************************
 # **********************************************************************************************************************
 pt1_cpx = Depart
-temps=tp
+temps=instant
 but = False
 while but == False:
     # for k in range (5):
@@ -293,26 +286,39 @@ while but == False:
     # print ('But atteint',but)
     plot2 = plt.plot(pt1_cpx.real, -pt1_cpx.imag, color = 'red', linewidth = 1)
 
+
+
+
+
 # retracage chemin
 a = int(indice)                 #indice du point de la route la plus courte
-#plt.plot(isochrone[a][0], -isochrone[a][1], 'k.')  # trace des points de la route
+#plt.plot(isochrone[a][0], -isochrone[a][1], 'k.')  # trace de l'arrivee
 n=int(isochrone[-1][2])
 
 print('\nRoute à suivre')
 
-route=[]
+route=[a]
 for i in range(n):
     a = int(dico[a])
-    route.append(a)
-#     # TODO: ici il faudrait recalculer les caps pour pouvoir affficher la route
-#     #************************************
-#     #************************************
+    route.append(a)      # route contient les indices successifs des points a emprunter a l'envers
 
-for i in reversed(route):
-    a= route[i]
-    print (' \t{:4.2f}\t{:4.2f}\t{:4.0f} \t{} \t{:4.2f} \t{:4.2f} \t{:4.2f}'.format(isochrone[i][0], -isochrone[i][1],isochrone[i][2],isochrone[i][3],isochrone[i][4],isochrone[i][5],isochrone[i][6]))
-    plt.plot(isochrone[a][0], -isochrone[a][1], 'k.')  # marqueur bleu rond depart
+print('route',route)
+route.reverse()
+print ('reverse',route)
 
+chemin = np.zeros(len(route), dtype=complex)  # initialise le np array de complexes qui recoit les donnees
+
+pointsx=[]
+pointsy=[]
+for i in range(len(route)):
+    n=route[i]
+    pointsx.append(isochrone[n][0])
+    pointsy.append(-isochrone[n][1])
+
+pointsx.append(ar[0])
+pointsy.append(-ar[1])
+
+plt.plot(pointsx,pointsy,'k')
 
 #   ****************************************Controle du temps dexecution **********************************
 tac = time.time()

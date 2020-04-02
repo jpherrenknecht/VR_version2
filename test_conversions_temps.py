@@ -81,9 +81,9 @@ print (' heuregmt', heureg)
 t1 = time.strftime("%A %d %B %Y %H:%M:%S")
 print('t1 :',t1)
 
-time_en_s  = time.mktime((2020, 3, 24, 14, 0, 0, 0, 0, 0))
+time_en_s  = time.mktime((2020, 3, 29, 12, 0, 0, 0, 0, 0))
 
-print ('time en s :', time_en_s)
+print ('time en s  pour 29 3 12 h:', time_en_s)
 formate=time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(time_en_s))
 
 print('le meme formate :',formate)

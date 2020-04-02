@@ -170,9 +170,9 @@ def polaire2_vect(polaires,vit_vent,angle_vent,tableau_caps):
 
 
 if __name__=='__main__':
-    vit_vent = 19
+    vit_vent = 5.3
     angle_vent = 100
-    cap=160
+    cap=230
     tableau_caps = np.array([140, 141, 142])
     twa = 180 - abs(((360 - angle_vent + cap) % 360) - 180)
 
