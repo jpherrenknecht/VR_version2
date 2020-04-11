@@ -25,7 +25,7 @@ tic = time.time()
 
 
 # dans tous les calculs la longitude correspondant à l'axe des x est prise en premier
-# Les points sont definis en longitude latitude
+# Les points sont definis en longitude (x) latitude (y)
 # Attention les previsions sont elles faites en latitude longitude
 # les latitudes sont positives vers le sud et les longitudes positives vers l'est
 # Les points initiaux sont sous forme de tuple longitude latitude
@@ -206,8 +206,7 @@ def f_isochrone(pt_init_cplx, temps_initial_iso):
                  cap_arrivee])
 
             caps_x.append(cap_arrivee)
-        # print('max caps ', max(caps_x))
-        # print('min caps ', min(caps_x))
+
     coeff2 = 50 / (max(caps_x) - min(caps_x))  # coefficient pour ecremer et garder 50 points
 
     for j in range(len(points_calcul)):  # partie ecremage
@@ -237,17 +236,9 @@ def f_isochrone(pt_init_cplx, temps_initial_iso):
             but = True
         # indice du temps minimum
 
-    # print('temps minimum', min(tab_t))
     indice = tab_t.index(min(tab_t)) + numero_dernier_point + 1
-    # print('indice de temps minimum', indice)
-    # print (' numero global du point ',indice+numero_dernier_point+2)
-    # print('\nPoint correspondant', pointsx[indice])
-    # print()
-
-    # print ('{} points'.format(pointsx.shape[0]))
     isochrone = np.concatenate((isochrone, pointsx))  # On rajoute ces points a la fin du tableau isochrone
     ptn_cplx =np.array ([pointsx[:, 0] + pointsx[:, 1] * 1j ]) # on reforme un tableau numpy de complexes pour la sortie
-    # print('{} Points  de l isochrone \n {}'.format(ptn_cplx.size, ptn_cplx))
 
     return ptn_cplx, nouveau_temps,  but, indice
 
@@ -316,9 +307,8 @@ print()
 plt.figure('trace2')
 plt.xlabel('Longitudes')
 plt.ylabel('Latitudes')
-plt.title('Route A suivre')
+plt.title('Route à suivre')
 
-# limy=(min(D.imag,A.imag),max(D.imag,A.imag))
 
 plt.xlim(-10 + min(D.real, A.real), max(D.real, A.real) + 10)  # Définit les limites du graphique en x
 plt.ylim(   - (max(D.imag, A.imag) + 10 )         ,   -( -10 + min(D.imag, A.imag))                    )  # Définit les limites du graphique en y
@@ -331,19 +321,17 @@ plt.plot(A.real, -A.imag, 'ro')  # marqueur rouge arrivee
 # **********************************************************************************************************************
 #on initialise l'isochrone de depart
 pt1_cpx = np.array([[D]])
-
+# tant que le but n'est pas atteint on calcule des isochrones
 but = False
 while but == False:
     pt1_cpx, temps, but, indice = f_isochrone(pt1_cpx, temps)
 
-    #on trace les isochrones
-    plt.plot(pt1_cpx[0].real, -pt1_cpx[0].imag, color = 'red', linewidth = 1)      # Tracage isochrones
+# et on on les trace
+    plt.plot(pt1_cpx[0].real, -pt1_cpx[0].imag, color = 'red', linewidth = 1)
 
 
 
-
-
-# retracage chemin
+# retracage chemin à l'envers
 a = int(indice)                 # indice du point de la route la plus courte
 n=int(isochrone[-1][2])         # nombre d'isochrones
 
@@ -355,7 +343,7 @@ for i in range(n):
 route.reverse()
 
 #on stocke les valeurs des points dans chemin
-chemin = np.zeros(len(route)+1, dtype=complex)  # initialise le np array de complexes qui va recevoir les donnees
+chemin = np.zeros(len(route)+1, dtype=complex)  # on initialise le np array de complexes qui va recevoir les donnees
 i=0
 for n in (route):
     chemin[i]=isochrone[n][0]+isochrone[n][1]*1j
@@ -392,9 +380,10 @@ twa= twa1.reshape((1, -1))
 
 
 
-#tabchemin : x,y,vit vent ,angle_vent
+#tabchemin : x,y,vit vent ,angle_vent,cap vers point suivant twa vers point suivant
 tabchemin=np.concatenate((chx.T,chy.T,temps_pts.T,vitesse.T,angle_vent.T,cap.T,twa.T),axis=1)
 print ('tabchemin \n',tabchemin)
+
 print ('tabchemin.shape',tabchemin.shape)
 
 

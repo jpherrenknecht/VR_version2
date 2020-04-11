@@ -9,6 +9,9 @@ from scipy.interpolate import RegularGridInterpolator
 
 # les gribs complets sont disponibles en heure d'ete à
 # 13h(gfs06) - 19(gfs12) -  01(gfs18) - 07 h (gfs00)
+# les gribs complets sont disponibles en heure d'hiver à
+# 12h(gfs06) - 18(gfs12) -  00(gfs18) - 06 h (gfs00)
+
 
 ix = np.arange(129)  # temps
 iy = np.arange(181)  # latitudes
@@ -60,25 +63,28 @@ def chargement_grib():
     '''Charge le grib a la date indiquée et le sauve en type tableau de complexes sous format hd5'''
 
 
-    #todo attention un probleme a minuit qui m'oblige a me coucher
+
     heures = ['00', '06', '12', '18']
     t = time.localtime()
     utc = time.gmtime()
     decalage_h = t[3] - utc[3]
     decalage_s = decalage_h * 3600
-    # print ('Decalage',decalage_h )
-
-    #todo c'est ici que se joue le pb
 
 
-    # if t[3]<7:
-    #     jour=t[2]-1
-    # else
-    #     jour =t[2]
 
+    #on bloque l(heure du grib
     heure_grib = heures[((utc[3] + 19) // 6) % 4]  #
-    dategrib = str(t[2] // 10) + str(t[2] % 10) + '-' + str(t[1] // 10) + str(t[1] % 10) + '-' + str(
-        t[0]) + ' ' + heure_grib + '-00-00'
+    #si utc inferieur à 5 la date doit etre celle de la veille
+
+    if utc[3]<5:
+        utc = time.gmtime(time.time() -18000)
+
+
+    dategrib = str(utc[2] // 10) + str(utc[2] % 10) + '-' + str(utc[1] // 10) + str(utc[1] % 10) + '-' + str(
+        utc[0]) + ' ' + heure_grib + '-00-00'
+
+    #print ('dategrib',dategrib)
+
     filenamehd5 = "gribs/grib_gfs_" + dategrib + ".hdf5"
     print('Nom fichier hdf5 : ', filenamehd5)
     # print('heure grib utc ', int(heure_grib))
@@ -210,8 +216,12 @@ if __name__ == '__main__':
 
 
 # version avec temps instantane
+
+
     t = time.localtime()
     instant = time.time()+3600
+
+    print ('t1',t[3])
 
     instant_formate = time.strftime(" %d %b %Y %H:%M:%S  ", time.gmtime(instant))
 
