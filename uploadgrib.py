@@ -198,7 +198,7 @@ if __name__ == '__main__':
     print('\nDate et Heure du grib  en UTC  :', time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(tig)))
 
 
-    dateprev = ('01-04-2020 17-00-00')    #  a indiquer en local
+    dateprev = ('03-04-2020 14-00-00')    #  a indiquer en local
 
     dateprev_s = chainetemps_to_int(dateprev)[10]
     dateprev_formate = chainetemps_to_int(dateprev)[9]

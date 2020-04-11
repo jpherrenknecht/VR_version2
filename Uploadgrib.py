@@ -30,7 +30,7 @@ def chainetemps_to_int(chainetemps):
     t = time.localtime()
     utc = time.gmtime()
     decalage_s = (t[3] - utc[3]) * 3600
-    t_s_local = time.mktime((year, month, day, hour , mins, secs, 0, 0, 0))
+    t_s_local = time.mktime((year, month, day, hour +1, mins, secs, 0, 0, 0))
     t_s_utc = t_s_local - decalage_s
     #todo pourquoi le +1
     formate_local = time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(t_s_local))
@@ -59,12 +59,22 @@ def chaine_to_dec(latitude, longitude):
 def chargement_grib():
     '''Charge le grib a la date indiquée et le sauve en type tableau de complexes sous format hd5'''
 
+
+    #todo attention un probleme a minuit qui m'oblige a me coucher
     heures = ['00', '06', '12', '18']
     t = time.localtime()
     utc = time.gmtime()
     decalage_h = t[3] - utc[3]
     decalage_s = decalage_h * 3600
     # print ('Decalage',decalage_h )
+
+    #todo c'est ici que se joue le pb
+
+
+    # if t[3]<7:
+    #     jour=t[2]-1
+    # else
+    #     jour =t[2]
 
     heure_grib = heures[((utc[3] + 19) // 6) % 4]  #
     dategrib = str(t[2] // 10) + str(t[2] % 10) + '-' + str(t[1] // 10) + str(t[1] % 10) + '-' + str(
@@ -95,6 +105,7 @@ def chargement_grib():
                   + str(leftlon) + "&rightlon=" + str(rightlon) + "&toplat=" + str(toplat) + "&bottomlat=" + str(
                 bottomlat) + "&dir=%2Fgfs." + date + "%2F" + strhour
             nom_fichier = "grib_" + date + "_" + strhour + "_" + prev
+
             urlretrieve(url, nom_fichier)  # recuperation des fichiers
 
             print(' Enregistrement prévision {} + {} heures effectué: '.format(dategrib,
@@ -126,9 +137,6 @@ def ouverture_fichier(filename):
     dset1 = f2['dataset_01']
     GR = dset1[:]
     tig = dset1.attrs['time_grib']
-    # V=np.abs(GR)*1.94384
-    # U=(270-np.angle(GR,deg=True))%360
-    # voir a fermer le fichier
     f2.close()
     return tig, GR
 
@@ -138,21 +146,61 @@ def prevision(tig, GR, tp, latitude, longitude):
     itemp = (tp - tig) / 3600 / 3
     ilati = (latitude + 90)
     ilong = (longitude) % 360
-    print('indices', itemp, ilati, ilong)
-
-
     vcplx = fn3((itemp, ilati, ilong))
+    #print('vcplx',vcplx)
     vit_vent_n = np.abs(vcplx) * 1.94384
     angle_vent = (270 - np.angle(vcplx, deg=True)) % 360
     return vit_vent_n, angle_vent
 
+def prevision_tableau (tig,GR,tp,points):
+    '''Le tableau des points est un tableau de points complexes'''
+    '''retourne un tableau des previsions angles et vitesses '''
+    fn3 = RegularGridInterpolator((ix, iy, iz), GR)
+    itemp=np.ones( points.shape)*(tp - tig) / 3600 / 3
+    ilati = np.imag(points) + 90
+    ilong = np.real(points) %360
+    e=np.concatenate((itemp.T,ilati.T,ilong.T ),axis=1)
+
+    # print ('e.shape)',e.shape)
+    # print ('e',e)
+    prevs = fn3((e))   #prevs est un tableau de complexes des vecteurs du vent aux differents points
+    vitesse = np.abs(prevs) * 1.94384
+    #print (vitesse)
+    angle_vent = (270 - np.angle(prevs, deg=True)) % 360
+    #print (angle_vent)
+
+    return vitesse, angle_vent
+
+
+def prevision_tableau2 (GR,temp,point):
+    ''' calcule les previsions a partir d'une liste des temps par rapport au depart et des points sous forme complexe'''
+    temps = temp.reshape((1, -1))
+    points=point.reshape((1, -1))
+    fn3 = RegularGridInterpolator((ix, iy, iz), GR)
+    tab_itemp=temps.reshape((1,-1))/ 3600 / 3
+    ilati = np.imag(points) + 90
+    ilong = np.real(points) %360
+    e = np.concatenate(( tab_itemp.T, ilati.T, ilong.T), axis=1)
+    prevs = fn3((e))   #prevs est un tableau de complexes des vecteurs du vent aux differents points
+    vitesse = np.abs(prevs) * 1.94384
+    #print (vitesse)
+    angle_vent = (270 - np.angle(prevs, deg=True)) % 360
+    #print (angle_vent)
+
+    return vitesse, angle_vent
 
 if __name__ == '__main__':
     filename = chargement_grib()
     tig, GR = ouverture_fichier(filename)
 
-    latitude_d = '38-36-10-N'
-    longitude_d = '66-44-31-W'
+    # Depart
+    latitude_d = '39-00-00-N'
+    longitude_d = '67-00-00-W'
+    # Arrivee
+    latitude_a = '12-10-00-N'
+    longitude_a = '65-00-00-W'
+
+
     dateprev = ('04-04-2020 12-21-00')  # a indiquer en local
 
     dateprev_s = chainetemps_to_int(dateprev)[10]
@@ -163,10 +211,12 @@ if __name__ == '__main__':
 
 # version avec temps instantane
     t = time.localtime()
-    instant = time.time()
-    instant_formate = time.strftime(" %d %b %Y %H:%M:%S local ", time.gmtime(instant))
+    instant = time.time()+3600
 
-    print ('instant en seconces' ,instant)
+    instant_formate = time.strftime(" %d %b %Y %H:%M:%S  ", time.gmtime(instant))
+
+    print('tig', tig)
+    print ('instant en secondes' ,instant)
     print('dateprev en s ', dateprev_s)
     print('instant formate', instant_formate)
 
@@ -177,6 +227,18 @@ if __name__ == '__main__':
     print('\tAngle du vent   {:6.1f} °'.format(angle_vent))
     print('\tVitesse du vent {:6.3f} Noeuds'.format(vit_vent_n))
 
+
+
+
+    # version tableau ******************************************************************************
+
+    #points=np.array([[-67-39*1j, -65-40*1j]])
+    #points = np.array([[d[0] + d[1] * 1j]])
+    points = np.array([[-10 - 2 * 1j, -15 + 3 * 1j, 50 + 10 * 1j]])
+
+
+    prevs=prevision_tableau(tig, GR, instant, points)
+    print(prevs)
 
     # print ('\nVERSION AVEC DATE EN DUR------------------------------------ ')
     #

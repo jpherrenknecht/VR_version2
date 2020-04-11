@@ -3,8 +3,6 @@ import  numpy  as np
 
 
 #definition des graduations sur les axes x y
-
-
 x1=np.array([0,2,4,5,8,10,12,14,16,18,20,22,24,25,26,28,30,32,35,40,50,60,70])   #les vents
 y1=([0,20,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180])
 
@@ -43,10 +41,38 @@ polaires=np.array([[
 0,1.424,2.939,3.651,5.837,7.192,8.305,9.388,10.431,11.344,12.146,13.561,15.065,15.767,16.459,17.863,19.157,20.953,22.247,22.848,19.137,17.783,10.381],[
 0,1.414,2.929,3.651,5.777,7.091,8.205,9.218,10.231,11.143,11.976,13.37,14.764,15.466,16.158,17.552,18.856,20.652,21.855,22.447,18.014,17.151,10.201]])
 
-pts=np.array([[60,18],[60,19],[60,20]])   #  calcul de plusieurs valeurs Twa  en premier vitesse vent en second
+# donnees=np.array([[60,18],[60,19],[60,20]])   #  calcul de plusieurs valeurs Twa  en premier vitesse vent en second
+# print ('Twa ',donnees[:,0])
+# print ('vent ',donnees[:,1])
+#
+# valeurs = interpn((y1,x1),polaires, donnees ,method='linear')
+# print('valeurs',valeurs)
 
-print ('Twa ',pts[:,0])
-print ('vent ',pts[:,1])
 
-valeurs = interpn((y1,x1),polaires, pts ,method='linear')
-print('valeurs',valeurs)
+def twa(cap, dvent):
+    twa = 180 - abs(((360 - dvent + cap) % 360) - 180)
+    return twa
+
+def polaire2_vect(polaires,vit_vent,angle_vent,tableau_caps):
+    #transformation tableau de caps en un point en tableau de donnees (twa , vit_vent)
+    donnees = np.zeros((len(tableau_caps),2))
+    for k in range(len(tableau_caps)):
+        twa = 180 - abs(((360 - angle_vent + tableau_caps[k]) % 360) - 180)
+        donnees[k]=[twa,vit_vent]
+    valeurs = interpn((y1, x1), polaires, donnees, method='linear')
+    return valeurs
+
+
+if __name__ == '__main__':
+    vit_vent = 19
+    angle_vent = 100
+    #cap = 160
+    caps = np.array([140, 141, 142])
+    #twa = 180 - abs(((360 - angle_vent + cap) % 360) - 180)
+
+
+    res = polaire2_vect(polaires, vit_vent, angle_vent, caps)
+
+    print ('Vitesse du vent {} noeuds , angle du vent {}° ' .format(vit_vent,angle_vent))
+    print ('caps :', caps)
+    print('Polaires',res)

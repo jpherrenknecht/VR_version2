@@ -8,7 +8,32 @@ import os
 
 # les gribs complets sont disponibles en heure d'ete à
 # 13h(gfs06) - 19(gfs12) -  01(gfs18) - 07 h (gfs00)
+def interpol2(tableau, y, x):
+    # LES INDICES VARIENT DE 1 EN 1,  tableau donne les valeurs tableau[y,x]
+    x1 = math.floor(x - 1E-5)  # x2=x1+1   , x2-x1=1
+    y1 = math.floor(y - 1E-5)  # y2=y1+1   , y2-y1= 1
+    dx = x - x1
+    dy = y - y1
 
+    #print('intermediaire', y1, x1)
+    delta_fx = tableau[y1, x1 + 1] - tableau[y1, x1]
+    delta_fy = tableau[y1 + 1, x1] - tableau[y1, x1]
+    delta_fx_fy = tableau[y1, x1] + tableau[y1 + 1, x1 + 1] - tableau[y1, x1 + 1] - tableau[y1 + 1, x1]
+    f_x_y = delta_fx * dx / 1 + delta_fy * dy / 1 + delta_fx_fy * dx * dy / (1 * 1) + tableau[y1, x1]
+    return f_x_y
+
+
+def interpol3(tab2, z, y, x):
+    dimz, dimy, dimx = tab2.shape
+    if (z > dimz - 1) or (y > dimy - 1) or (x > dimx - 1):
+        print('Erreur de dimension dans les donnees de l interpolation')
+    z1 = math.floor(z - 1E-5)
+
+    #print('resultat intermediaire ', z1, y, x)
+    xy1 = interpol2(tab2[z1, :, :], y, x)
+    xy2 = interpol2(tab2[z1 + 1, :, :], y, x)
+    resultat = (z - z1) / 1 * (xy2 - xy1) + xy1
+    return resultat
 
 def chainetemps_to_int(chainetemps):
     '''Convertit une chaine de temps en valeur entiere '''
@@ -129,14 +154,15 @@ def ouverture_fichier(filename):
 
 
 def prevision(tig,X,Y,tp,latitude,longitude):
-    itemp =int((tp - tig) / 3600/3)
-    ilati =int( (latitude + 90))
-    ilong = int(( longitude)%360)
-    print ('indices',itemp,ilati,ilong)
-    vit_vent_n =Y[itemp][ilati][ilong]
-    angle_vent =X[itemp][ilati][ilong]
+    itemp =(tp - tig) / 3600 / 3
+    ilati = (latitude + 90)
+    ilong = ( longitude)%360
+    # print ('tig',tig)
+    # print ('tp',tp)
+    # print ('indices',itemp,ilati,ilong)
+    vit_vent_n =interpol3(Y,itemp,ilati,ilong)
+    angle_vent =interpol3(X,itemp,ilati,ilong)
     return vit_vent_n, angle_vent
-
 
 
 
@@ -144,18 +170,22 @@ if __name__ == '__main__':
     filename=chargement_grib()
     tig,X,Y=ouverture_fichier(filename)
 
-    latitude_d = '39-00-00-N'
+    latitude_d = '39-30-00-N'
     longitude_d = '64-00-00-W'
-    dateprev = ('01-04-2020 17-00-00')  # a indiquer en local
+    dateprev = ('03-04-2020 11-00-00')  # a indiquer en local
 
     dateprev_s = chainetemps_to_int(dateprev)[10]
     dateprev_formate = chainetemps_to_int(dateprev)[9]
     d = chaine_to_dec(latitude_d, longitude_d)  # co
 
 
-# on essaie avec des valeurs entieres
-    vit_vent_n, angle_vent=prevision(tig,X,Y,dateprev_s,d[1],d[0])
-    print('\nLe {} heure locale Pour latitude {:6.2f} et longitude{:6.2f} '.format(dateprev_formate, d[1], d[0]))
-    print('\tVitesse du vent {:6.3f} Noeuds'.format(vit_vent_n))
-    print('\tAngle du vent   {:6.1f} °'.format(angle_vent))
-    print()
+    print('d1', d[1])
+    for k in range (0,4,1):
+        dateprev_s+=3600*3
+        date_prev_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(dateprev_s))
+        vit_vent_n, angle_vent = prevision(tig, X, Y, dateprev_s, d[1], d[0])
+        print('\nLe {} heure UTC Pour latitude {:6.2f} et longitude{:6.2f} '.format(date_prev_formate, d[1], d[0]))
+        print('\tAngle du vent   {:6.1f} °'.format(angle_vent))
+        print('\tVitesse du vent {:6.3f} Noeuds'.format(vit_vent_n))
+
+        print()
