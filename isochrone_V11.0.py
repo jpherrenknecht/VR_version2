@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import pandas as pd
 from Uploadgrib import *
-from polaires_imoca import *
+from polaires_caravelle import *
 from operator import itemgetter
 
 tic = time.time()
@@ -36,7 +36,7 @@ tic = time.time()
 
 
 angle_objectif = 45
-angle_twa_pres = 40
+angle_twa_pres = 65
 angle_twa_ar = 20
 delta_temps = 3600  # duree du deplacement en s: temps entre 2 isochrones
 
@@ -223,29 +223,35 @@ def f_isochrone(pt_init_cplx, temps_initial_iso):
         pointsx[i][6] = int(pointsx[i][6] / coeff2)  # on retablit le cap en valeur
         dico[pointsx[i][4]] = pointsx[i][3]
 
+
+
+
+
         # on cherche les temps vers l'arrivee des nouveaux points
         vit_vent, angle_vent = prevision(tig, GR, nouveau_temps, pointsx[i][1], pointsx[i][0])
         twa = 180 - abs(((360 - angle_vent + pointsx[i][6]) % 360) - 180)
 
         resultat = polaire(polaires, vit_vent, twa)
         d_a = pointsx[i][5]
-        t_a = 60 * d_a / resultat
+        t_a = 60 * d_a / (resultat+0.00000001)
         tab_t.append(t_a)
         # print('temps',t_a)
         if t_a < delta_temps / 3600:
             but = True
-        # indice du temps minimum
+                    # indice du temps minimum
 
     indice = tab_t.index(min(tab_t)) + numero_dernier_point + 1
+    #print ('min tabt',min(tab_t))
     isochrone = np.concatenate((isochrone, pointsx))  # On rajoute ces points a la fin du tableau isochrone
     ptn_cplx =np.array ([pointsx[:, 0] + pointsx[:, 1] * 1j ]) # on reforme un tableau numpy de complexes pour la sortie
+
+    if but==True:
+        nouveau_temps=temps_initial_iso+ min(tab_t)
 
     return ptn_cplx, nouveau_temps,  but, indice
 
 
 # ************************************   Initialisations      **********************************************************
-
-# 1 : x , 2 y du point , 3 N°iso, 4 N° pt mere , 5 N° pt , 6 distance a l'arrivee , 7 cap a l'arrivee, 8 polaire depuis le pt precedent , 9 twa depuis le point precedent , 10 cap depuis le point precedent
 
 t = time.localtime()
 instant = time.time()
@@ -253,22 +259,20 @@ filename=chargement_grib()
 tig, GR = ouverture_fichier(filename)
 temps=instant
 
-
-
 # Depart
-latitude_d = '15-33-00-N'
-longitude_d = '68-31-00-W'
+latitude_d = '31-40-58-N'
+longitude_d = '19-23-41-W'
 
 # Arrivee
-latitude_a = '12-10-00-N'
-longitude_a = '68-56-00-W'
+latitude_a = '36-34-00-N'
+longitude_a = '06-19-00-W'
 
 d = chaine_to_dec(latitude_d, longitude_d)  # conversion des latitudes et longitudes en tuple
 a = chaine_to_dec(latitude_a, longitude_a)
 
 D = cplx(d)  # transformation des tuples des points en complexes
 A = cplx(a)
-#Depart = np.array([[d[0] + D.imag * 1j]])    # le depart est mis sous forme d'un tableau complexe
+
 # Initialisation du tableau des points d'isochrones
 isochrone  = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
 isochrone2 = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
@@ -284,14 +288,13 @@ temps_cumules=np.cumsum(intervalles)
 print ('Depart : Latitude {:4.2f}  Longitude {:4.2f}'.format( d[1] , d[0]) )
 print ('Arrivee: Latitude {:4.2f}  Longitude {:4.2f}'.format( a[1] , a[0]) )
 
-# ************************************* Grib   *************************************************************************
 
+# ************************************* Grib   *************************************************************************
 
 
 
 instant_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(instant))
 vit_vent_n, angle_vent = prevision(tig, GR, instant, D.imag, D.real)
-
 
 # Impression des resultats
 print('Date et Heure du grib  en UTC  :', time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(tig)))
@@ -309,7 +312,6 @@ plt.xlabel('Longitudes')
 plt.ylabel('Latitudes')
 plt.title('Route à suivre')
 
-
 plt.xlim(-10 + min(D.real, A.real), max(D.real, A.real) + 10)  # Définit les limites du graphique en x
 plt.ylim(   - (max(D.imag, A.imag) + 10 )         ,   -( -10 + min(D.imag, A.imag))                    )  # Définit les limites du graphique en y
 plt.grid(True)
@@ -321,13 +323,15 @@ plt.plot(A.real, -A.imag, 'ro')  # marqueur rouge arrivee
 # **********************************************************************************************************************
 #on initialise l'isochrone de depart
 pt1_cpx = np.array([[D]])
+
 # tant que le but n'est pas atteint on calcule des isochrones
 but = False
 while but == False:
     pt1_cpx, temps, but, indice = f_isochrone(pt1_cpx, temps)
 
 # et on on les trace
-    plt.plot(pt1_cpx[0].real, -pt1_cpx[0].imag, color = 'red', linewidth = 1)
+    #plt.plot(pt1_cpx[0].real, -pt1_cpx[0].imag, color = 'red', linewidth = 1)
+    plt.scatter(pt1_cpx[0].real, -pt1_cpx[0].imag, c='r',s=1)
 
 
 
@@ -350,8 +354,6 @@ for n in (route):
     i+=1
 chemin[i]=A
 
-
-
 # maintenant on reconstitue le chemin avec les caps les TWA et les previsions
 l=len(chemin)
 temps_cum=temps_cumules[:l]
@@ -367,8 +369,7 @@ caps1=np.append(cap1,[0])
 
 # calculs twa
 twa1=twa(caps1, angle_vent1)
-
-
+temps_cum+=tig
 #mise en forme pour concatener
 chx=chemin.real.reshape((1, -1))
 chy=chemin.imag.reshape((1, -1))
@@ -378,14 +379,23 @@ angle_vent= angle_vent1.reshape((1, -1))
 cap= caps1.reshape((1, -1))
 twa= twa1.reshape((1, -1))
 
-
+#print('twa',twa)
 
 #tabchemin : x,y,vit vent ,angle_vent,cap vers point suivant twa vers point suivant
-tabchemin=np.concatenate((chx.T,chy.T,temps_pts.T,vitesse.T,angle_vent.T,cap.T,twa.T),axis=1)
-print ('tabchemin \n',tabchemin)
+chem=np.concatenate((chx.T,chy.T,temps_pts.T,vitesse.T,angle_vent.T,cap.T,twa.T),axis=1)
+#print ('tabchemin \n',chem)
 
-print ('tabchemin.shape',tabchemin.shape)
+#print ('tabchemin.shape',chem.shape)
+print ('\t n \t\t\t Date \t\t\t\t  X \t\t\tY  \tV_vent \t A_Vent \tCap \tTWA')
+for i in range (len(chem)):
+    print('\t {}  \t{} \t{:6.3f} \t{:6.3f}\t{:6.2f} \t{:6.0f} \t{:6.0f} \t{:6.1f}'.format( i,
+    time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(chem[i,2])),chem[i,0],chem[i,1],chem[i,3],chem[i,4],chem[i,5],chem[i,6]))
 
+duree=temps-instant
+print ('temps total en s ',duree[0])
+h=duree//3600
+mn=int (duree-3600*h)/60
+print ('temps total {} h {} mn'.format(h,mn))
 
 plt.plot(chemin.real,-chemin.imag,'k')   # trace du chemin"
 
@@ -396,16 +406,3 @@ tac = time.time()
 print('\nDuree d\'execution:  {:4.2f} s'.format(tac - tic))
 plt.show()
 
-
-
-
-
-
-
-
-
-
-
-
-
-#plt.plot(isochrone[a][0], -isochrone[a][1], 'k.')  # trace de l'arrivee
