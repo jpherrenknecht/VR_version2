@@ -260,8 +260,9 @@ tig, GR = ouverture_fichier(filename)
 temps=instant
 
 # Depart
-latitude_d = '31-40-58-N'
-longitude_d = '19-23-41-W'
+latitude_d = '34-34-11-N'
+longitude_d = '14-28-33-W'
+
 
 # Arrivee
 latitude_a = '36-34-00-N'
