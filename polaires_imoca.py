@@ -1,6 +1,9 @@
 from scipy.interpolate import RegularGridInterpolator,interp2d,interpn
 import  numpy  as np
 
+# angle mini au près 36°
+# angle maxi au var 160°
+
 
 #definition des graduations sur les axes x y
 x1=np.array([0,2,4,5,8,10,12,14,16,18,20,22,24,25,26,28,30,32,35,40,50,60,70])   #les vents

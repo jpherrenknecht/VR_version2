@@ -16,10 +16,11 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import pandas as pd
 from Uploadgrib import *
-from polaires_caravelle import *
+#from polaires_caravelle import *
+from polaires_figaro2 import *
 from operator import itemgetter
 
-tic = time.time()
+
 
 # *****************************************   Donnees   ****************************************************************
 
@@ -33,14 +34,6 @@ tic = time.time()
 # pour le vent on parle de vitesses et angles
 
 
-
-
-angle_objectif = 45
-angle_twa_pres = 65
-angle_twa_ar = 20
-delta_temps = 3600  # duree du deplacement en s: temps entre 2 isochrones
-
-dico = {}
 
 
 # **************************************   Fonctions   ******************************************************************
@@ -118,9 +111,7 @@ def calcul_points(D, tp, d_t, angle_vent, vit_vent, range, polaires):
     # print ('vit_noeuds',vit_noeuds.shape)
     # print( 'range_radian shape',range_radian.shape)
     # print('D.shape',D.shape)
-    points_arrivee = D + (d_t / 3600 / 60 * vit_noeuds *
-            (np.cos(range_radian) / math.cos(D.imag * math.pi / 180)  +   np.sin(range_radian) * 1j))
-
+    points_arrivee = D + (d_t / 3600 / 60 * vit_noeuds * (np.sin(range_radian) / math.cos(D.imag * math.pi / 180) - np.cos(range_radian) * 1j))
     return points_arrivee, tp + d_t
 
 
@@ -252,6 +243,10 @@ def f_isochrone(pt_init_cplx, temps_initial_iso):
 
 
 # ************************************   Initialisations      **********************************************************
+tic = time.time()
+
+angle_objectif = 45
+dico = {}
 
 t = time.localtime()
 instant = time.time()
@@ -260,13 +255,20 @@ tig, GR = ouverture_fichier(filename)
 temps=instant
 
 # Depart
-latitude_d = '34-34-11-N'
-longitude_d = '14-28-33-W'
+latitude_d = '46-51-00-N'
+longitude_d = '04-43-00-W'
 
 
-# Arrivee
-latitude_a = '36-34-00-N'
-longitude_a = '06-19-00-W'
+# Arrivee magellan
+# latitude_a = '36-34-22-N'
+# longitude_a = '06-18-00-W'
+
+# Arrivee ag2r
+latitude_a = '21-36-00-N'
+longitude_a = '42-44-00-W'
+
+
+
 
 d = chaine_to_dec(latitude_d, longitude_d)  # conversion des latitudes et longitudes en tuple
 a = chaine_to_dec(latitude_a, longitude_a)
@@ -278,7 +280,7 @@ A = cplx(a)
 isochrone  = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
 isochrone2 = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
 
-dt1 = np.ones(36)*600                    # intervalles de temps toutes les 10mn pendant une heure puis toutes les heures
+dt1 = np.ones(6)*3600                    # intervalles de temps toutes les 10mn pendant une heure puis toutes les heures
 dt2 = np.ones(378)*3600
 intervalles=np.concatenate(([instant-tig],dt1,dt2))
 temps_cumules=np.cumsum(intervalles)
@@ -370,6 +372,15 @@ caps1=np.append(cap1,[0])
 
 # calculs twa
 twa1=twa(caps1, angle_vent1)
+
+print('vitesse1',vitesse1.shape)
+print('angle_vent1',angle_vent1.shape)
+
+print('caps1',caps1.shape)
+
+#polaires10=polaire2_vect(polaires,vitesse1,angle_vent1,caps1)
+#print ('polaires\n',polaires10)
+
 temps_cum+=tig
 #mise en forme pour concatener
 chx=chemin.real.reshape((1, -1))
@@ -386,17 +397,23 @@ twa= twa1.reshape((1, -1))
 chem=np.concatenate((chx.T,chy.T,temps_pts.T,vitesse.T,angle_vent.T,cap.T,twa.T),axis=1)
 #print ('tabchemin \n',chem)
 
+indexiso=np.arange(l)
+df = pd.DataFrame(chem, index = indexiso, columns = ['x', 'y', 't', 'vitesse_v','angle_v','cap','twa'])
+print(df.head(5))
+df.to_csv('fichier_panda.csv')
 #print ('tabchemin.shape',chem.shape)
 print ('\t n \t\t\t Date \t\t\t\t  X \t\t\tY  \tV_vent \t A_Vent \tCap \tTWA')
 for i in range (len(chem)):
     print('\t {}  \t{} \t{:6.3f} \t{:6.3f}\t{:6.2f} \t{:6.0f} \t{:6.0f} \t{:6.1f}'.format( i,
     time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(chem[i,2])),chem[i,0],chem[i,1],chem[i,3],chem[i,4],chem[i,5],chem[i,6]))
 
-duree=temps-instant
-print ('temps total en s ',duree[0])
-h=duree//3600
-mn=int (duree-3600*h)/60
-print ('temps total {} h {} mn'.format(h,mn))
+duree=(temps-instant)[0]
+print ('temps total en s ',duree)
+j= duree//(3600*24)
+h=(duree-(j*3600*24))//3600
+mn=(duree-(j*3600*24)-h*3600)//60
+
+print ('temps total {} j {} h {} mn'.format(j,h,mn))
 
 plt.plot(chemin.real,-chemin.imag,'k')   # trace du chemin"
 

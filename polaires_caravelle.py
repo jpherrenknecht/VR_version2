@@ -1,6 +1,11 @@
 from scipy.interpolate import RegularGridInterpolator,interp2d,interpn
 import  numpy  as np
 
+# angle mini au près 65°
+# angle maxi au var 160°
+
+angle_twa_pres = 65
+angle_twa_ar = 20
 
 x1=np.array([0,6,10,14,20,24,30,35,40,55,56,70])
 y1=np.array([0,50,60,65,70,80,90,100,110,120,130,140,150,160,170,180])
@@ -34,7 +39,9 @@ def twa(cap, dvent):
 
 def polaire2_vect(polaires,vit_vent,angle_vent,tableau_caps):
     '''transformation tableau de caps en un point en tableau de donnees (twa , vit_vent)'''
+    '''Pour une valeur de vent et un angle de vent déterminés'''
     ''' Retourne un tableau de vitesse polaires suivant le tableau de caps'''
+
     donnees = np.zeros((len(tableau_caps),2))
     for k in range(len(tableau_caps)):
         twa = 180 - abs(((360 - angle_vent + tableau_caps[k]) % 360) - 180)
