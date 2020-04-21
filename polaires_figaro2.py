@@ -49,40 +49,94 @@ polaires=np.array([[
 def twa(cap, dvent):
     twa = 180 - abs(((360 - dvent + cap) % 360) - 180)
     return twa
-
-def polaire2_vect(polaires,vit_vent,angle_vent,tableau_caps):
-    '''transformation tableau de caps en un point en tableau de donnees (twa , vit_vent)'''
-    '''Pour une valeur de vent et un angle de vent déterminés'''
-    ''' Retourne un tableau de vitesse polaires suivant le tableau de caps'''
-
-    donnees = np.zeros((len(tableau_caps),2))
-    for k in range(len(tableau_caps)):
-        twa = 180 - abs(((360 - angle_vent + tableau_caps[k]) % 360) - 180)
-        donnees[k]=[twa,vit_vent]
-    valeurs = interpn((y1, x1), polaires, donnees, method='linear')
-    return valeurs
+#
+# def polaire2_vect(polaires,vit_vent,angle_vent,tableau_caps):
+#     '''transformation tableau de caps en un point en tableau de donnees (twa , vit_vent)'''
+#     '''Pour une valeur de vent et un angle de vent déterminés'''
+#     ''' Retourne un tableau de vitesse polaires suivant le tableau de caps'''
+#
+#     donnees = np.zeros((len(tableau_caps),2))
+#     for k in range(len(tableau_caps)):
+#         twa = 180 - abs(((360 - angle_vent + tableau_caps[k]) % 360) - 180)
+#         donnees[k]=[twa,vit_vent]
+#     valeurs = interpn((y1, x1), polaires, donnees, method='linear')
+#     return valeurs
 
 def polaire(polaires, vit_vent, twa): # polaire simple
     donnees= [twa, vit_vent]
     valeur = interpn((y1, x1), polaires, donnees, method='linear')
-
     return valeur
+
+
+def polaire2_vect(polaires,tws,twd,HDG):
+    '''ici un seul point avec tws twd plusieurs caps'''
+    # on ajuste les tableaux TW et TWD à HDG
+    l=len(HDG)
+    TWD = (np.ones(l)*twd)
+    TWA = (180 - np.abs(((360 - TWD + HDG) % 360) - 180)).reshape((-1, 1))
+    TWS = (np.ones(l) * tws).reshape((-1, 1))
+    donnees = np.concatenate((TWA, TWS), axis=1)
+    valeurs = interpn((y1, x1), polaires, donnees, method='linear')
+    return valeurs
+
+
+def polaire3_vect(polaires,TWS,TWD,HDG):
+    '''Retourne un tableau de polaires en fonction des polaires bateau  de TWS TWD et HDG'''
+    '''TWS true Wind speed, TWD true wind direction , HDG caps'''
+    '''Les trois tableaux doivent avoir la meme dimension'''
+    TWA=(180 - np.abs(((360 - TWD + HDG) % 360) - 180)).reshape((-1, 1))
+    TWS2=TWS.reshape((-1, 1))
+    donnees=np.concatenate((TWA,TWS2),axis=1)
+    valeurs = interpn((y1, x1), polaires, donnees, method='linear')
+    return valeurs
+
+
+
+
 
 #“linear” and “nearest”, and “splinef2d”. “splinef2d” is only
 
 if __name__ == '__main__':
+
+
+    tws=12
+    twd=150
+    HDG = np.array([100, 101, 102])  # caps
+    res4 = polaire2_vect(polaires, tws, twd, HDG)
+    print('polaires calculees 4 ', res4)
+
+
+
+
+    HDG=np.array([100,101,102])   #caps
+    TWD=np.array([150,150,150])   #direction vent
+    TWS=np.array([12,12,12])      #vitesse vent
+    res=polaire3_vect(polaires, TWS, TWD, HDG)
+
+    print('polaires calculees 3',res)
+
+    print()
+
+
+
+
     vit_vent = 10.49
     angle_vent = 0
     #cap = 160
     caps = np.array([140.7, 140.7, 140.7])
-
-
-
     res = polaire2_vect(polaires, vit_vent, angle_vent, caps)
 
     print ('Vitesse du vent {} noeuds , angle du vent {}° ' .format(vit_vent,angle_vent))
     print ('caps :', caps)
     print('Polaires',res)
+
+
+    vit1=np.array([10.49,10.49,10.49])
+    ang1=np.array([0,0,0])
+    caps = np.array([140.7, 140.7, 140.7])
+    res2=polaire3_vect(polaires, vit1, ang1, caps)
+    print('Polaires avec p3',res2)
+
 
 
     print ('Version simple')

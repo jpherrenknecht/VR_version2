@@ -4,7 +4,6 @@
 Created on Mon Dec 23 08:52:41 2019
 # les gribs complets sont disponibles en heure d'ete à
 # 13h(gfs06) - 19(gfs12) -  01(gfs18) - 07 h (gfs00)
-
 @author: jph
 """
 # test
@@ -16,11 +15,11 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import pandas as pd
 from Uploadgrib import *
-#from polaires_caravelle import *
+#from polaires_imoca import *
 from polaires_figaro2 import *
 from operator import itemgetter
 
-
+tic = time.time()
 
 # *****************************************   Donnees   ****************************************************************
 
@@ -216,39 +215,36 @@ def f_isochrone(pt_init_cplx, temps_initial_iso):
         pointsx[i][6] = int(pointsx[i][6] / coeff2)  # on retablit le cap en valeur
         dico[pointsx[i][4]] = pointsx[i][3]
 
-
-
-
-
         # on cherche les temps vers l'arrivee des nouveaux points
         vit_vent, angle_vent = prevision(tig, GR, nouveau_temps, pointsx[i][1], pointsx[i][0])
         twa = 180 - abs(((360 - angle_vent + pointsx[i][6]) % 360) - 180)
 
         resultat = polaire(polaires, vit_vent, twa)
         d_a = pointsx[i][5]
-        t_a = 60 * d_a / (resultat+0.00000001)
+        t_a = 60 * d_a / resultat
         tab_t.append(t_a)
         # print('temps',t_a)
         if t_a < delta_temps / 3600:
             but = True
-                    # indice du temps minimum
+        # indice du temps minimum
 
     indice = tab_t.index(min(tab_t)) + numero_dernier_point + 1
-    #print ('min tabt',min(tab_t))
     isochrone = np.concatenate((isochrone, pointsx))  # On rajoute ces points a la fin du tableau isochrone
     ptn_cplx =np.array ([pointsx[:, 0] + pointsx[:, 1] * 1j ]) # on reforme un tableau numpy de complexes pour la sortie
-
-    if but==True:
-        nouveau_temps=temps_initial_iso+ min(tab_t)
 
     return ptn_cplx, nouveau_temps,  but, indice
 
 
 # ************************************   Initialisations      **********************************************************
-tic = time.time()
+
+# 1 : x , 2 y du point , 3 N°iso, 4 N° pt mere , 5 N° pt , 6 distance a l'arrivee , 7 cap a l'arrivee
+
+
 
 angle_objectif = 45
 dico = {}
+
+
 
 t = time.localtime()
 instant = time.time()
@@ -256,21 +252,15 @@ filename=chargement_grib()
 tig, GR = ouverture_fichier(filename)
 temps=instant
 
+
+
 # Depart
-latitude_d = '46-55-00-N'
-longitude_d = '04-43-00-W'
+latitude_d = '15-33-00-N'
+longitude_d = '68-31-00-W'
 
-
-# Arrivee magellan
-# latitude_a = '36-34-22-N'
-# longitude_a = '06-18-00-W'
-
-# Arrivee ag2r
-latitude_a = '17-54-00-N'
-longitude_a = '62-45-00-W'
-
-
-
+# Arrivee
+latitude_a = '12-10-00-N'
+longitude_a = '68-56-00-W'
 
 d = chaine_to_dec(latitude_d, longitude_d)  # conversion des latitudes et longitudes en tuple
 a = chaine_to_dec(latitude_a, longitude_a)
@@ -280,9 +270,8 @@ A = cplx(a)
 
 # Initialisation du tableau des points d'isochrones
 isochrone  = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
-isochrone2 = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
 
-dt1 = np.ones(6)*3600                    # intervalles de temps toutes les 10mn pendant une heure puis toutes les heures
+dt1 = np.ones(36)*600                    # intervalles de temps toutes les 10mn pendant une heure puis toutes les heures
 dt2 = np.ones(378)*3600
 intervalles=np.concatenate(([instant-tig],dt1,dt2))
 temps_cumules=np.cumsum(intervalles)
@@ -290,24 +279,26 @@ temps_cumules=np.cumsum(intervalles)
 
 
 
-print ('Depart : Latitude {:4.2f}  Longitude {:4.2f}'.format( d[1] , d[0]) )
-print ('Arrivee: Latitude {:4.2f}  Longitude {:4.2f}'.format( a[1] , a[0]) )
-
+print ('Depart : Latitude {:4.2f}  Longitude {:4.2f}'.format( d[1] , d[0]) )
+print ('Arrivee: Latitude {:4.2f}  Longitude {:4.2f}'.format( a[1] , a[0]) )
 
 # ************************************* Grib   *************************************************************************
+
 
 
 
 instant_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(instant))
 vit_vent_n, angle_vent = prevision(tig, GR, instant, D.imag, D.real)
 
+
 # Impression des resultats
+
+
 print('Date et Heure du grib  en UTC  :', time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(tig)))
 print('\nLe {} heure locale Pour latitude {:6.2f} et longitude{:6.2f} '.format(instant_formate,D.real, D.imag ))
 print('\tVitesse du vent {:6.3f} Noeuds'.format(vit_vent_n))
 print('\tAngle du vent   {:6.1f} °'.format(angle_vent))
 print()
-
 
 
 
@@ -363,24 +354,25 @@ chemin[i]=A
 l=len(chemin)
 temps_cum=temps_cumules[:l]
 #previsions meteo aux differents points
-vitesse1, angle_vent1=prevision_tableau2 (GR,temps_cum,chemin)
+TWS_ch, TWD_ch=prevision_tableau2 (GR,temps_cum,chemin)
 
 #distance et angle d un point au suivant
 distance,cap1=deplacement2(chemin[0:-1],chemin[1:])
 
 #on rajoute un 0 pour la distance arrrivee et l angle arrivee
 dist=np.append(distance,[0])
-caps1=np.append(cap1,[0])
+HDG_ch=np.append(cap1,[0]) # tableau des caps aux differents points
 
-# calculs twa
-twa1=twa(caps1, angle_vent1)
+# calculs twa sous forme de tableau pour les differents points
+TWA_ch=twa(HDG_ch, TWD_ch)
+# calcul des polaires aux differents points du chemin
+POL_ch =polaire3_vect(polaires,TWS_ch,TWD_ch,HDG_ch)
 
-print('vitesse1',vitesse1.shape)
-print('angle_vent1',angle_vent1.shape)
+print('TWS_ch',TWS_ch.shape)
+print('TWD_ch',TWD_ch.shape)
+print('HDG_ch',HDG_ch.shape)
 
-print('caps1',caps1.shape)
-
-#polaires10=polaire2_vect(polaires,vitesse1,angle_vent1,caps1)
+#polaires10=polaire2_vect(polaires,TWS_ch,TWD_ch,HDG_ch)
 #print ('polaires\n',polaires10)
 
 temps_cum+=tig
@@ -388,28 +380,29 @@ temps_cum+=tig
 chx=chemin.real.reshape((1, -1))
 chy=chemin.imag.reshape((1, -1))
 temps_pts=temps_cum.reshape((1, -1))
-vitesse=vitesse1.reshape((1, -1))
-angle_vent= angle_vent1.reshape((1, -1))
-cap= caps1.reshape((1, -1))
-twa= twa1.reshape((1, -1))
+vitesse=TWS_ch.reshape((1, -1))
+angle_vent= TWD_ch.reshape((1, -1))
+cap= HDG_ch.reshape((1, -1))
+twa= TWA_ch.reshape((1, -1))
+pol= POL_ch.reshape((1, -1))
 
 #print('twa',twa)
 
 #tabchemin : x,y,vit vent ,angle_vent,cap vers point suivant twa vers point suivant
-chem=np.concatenate((chx.T,chy.T,temps_pts.T,vitesse.T,angle_vent.T,cap.T,twa.T),axis=1)
+chem=np.concatenate((chx.T,chy.T,temps_pts.T,vitesse.T,angle_vent.T,cap.T,twa.T,pol.T),axis=1)
 #print ('tabchemin \n',chem)
 
 indexiso=np.arange(l)
-df = pd.DataFrame(chem, index = indexiso, columns = ['x', 'y', 't', 'vitesse_v','angle_v','cap','twa'])
+df = pd.DataFrame(chem, index = indexiso, columns = ['x', 'y', 't', 'vitesse_v','angle_v','cap','twa', 'polaire'])
 print(df.head(5))
 df.to_csv('fichier_panda.csv')
 #print ('tabchemin.shape',chem.shape)
-print ('\t n \t\t\t Date \t\t\t\t  X \t\t\tY  \tV_vent \t A_Vent \tCap \tTWA')
+print ('\t n \t\t\t Date \t\t\t\t  X \t\t\tY  \tV_vent \t A_Vent \tCap \tTWA \t Polaire')
 for i in range (len(chem)):
-    print('\t {}  \t{} \t{:6.3f} \t{:6.3f}\t{:6.2f} \t{:6.0f} \t{:6.0f} \t{:6.1f}'.format( i,
-    time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(chem[i,2])),chem[i,0],chem[i,1],chem[i,3],chem[i,4],chem[i,5],chem[i,6]))
+    print('\t {}  \t{} \t{:6.3f} \t{:6.3f}\t{:6.2f} \t{:6.1f} \t{:6.1f} \t{:6.1f} \t{:6.2f}'.format( i,
+    time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(chem[i,2])),chem[i,0],chem[i,1],chem[i,3],chem[i,4],chem[i,5],chem[i,6],chem[i,7]))
 
-duree=(temps-instant)[0]
+duree=(temps-instant)
 print ('temps total en s ',duree)
 j= duree//(3600*24)
 h=(duree-(j*3600*24))//3600

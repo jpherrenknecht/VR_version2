@@ -2,57 +2,112 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import math
-def polaire2_vect(polaires,vit_vent,angle_vent,tableau_caps):
-    '''transformation tableau de caps en un point en tableau de donnees (twa , vit_vent)'''
-    '''Pour une valeur de vent et un angle de vent déterminés'''
-    ''' Retourne un tableau de vitesse polaires suivant le tableau de caps'''
-
-    donnees = np.zeros((len(tableau_caps),2))
-    for k in range(len(tableau_caps)):
-        twa = 180 - abs(((360 - angle_vent + tableau_caps[k]) % 360) - 180)
-        donnees[k]=[twa,vit_vent]
-    valeurs = interpn((y1, x1), polaires, donnees, method='linear')
-    return valeurs
-
-def calcul_points(D, tp, d_t, angle_vent, vit_vent, range, polaires):
-    '''tp temps au point D; d_t duree du deplacement en s ; angle du vent au point ; Vitesse du vent au point ; caps a simuler  ; polaires du bateau  '''
-    '''retourne un tableau points sous forme de valeurs complexes'''
-    points_arrivee = np.zeros((range.shape),   dtype=complex)  # Init tableau   points d'arrivee sous forme complexe
-    range_radian = (-range + 90) * math.pi / 180
-    vit_noeuds = polaire2_vect(polaires, vit_vent, angle_vent, range)  # Vitesses suivant les differents caps
-
-    # print ('vit_noeuds',vit_noeuds)
-    # print ('vit_noeuds',vit_noeuds.shape)
-    # print( 'range_radian shape',range_radian.shape)
-    # print('D.shape',D.shape)
-    points_arrivee = D + (d_t / 3600 / 60 * vit_noeuds * (np.sin(range_radian) / math.cos(D.imag * math.pi / 180)  -             np.cos(range_radian) * 1j))
-
-    return points_arrivee, tp + d_t
 
 
-D=-5.9150-46.0386*1j
-tp=0
-d_t=300
-vit_noeuds=6.66
-angle_vent=32.2
-vit_vent=8.96
-range=np.array([252])
-range_radian=range*math.pi/180
+def rangenavi(capa, capb):
+    if capb > capa:
+        range = np.arange(capa, capb)
+    else:
+        range = np.concatenate((np.arange(0, capb + 1), np.arange(capa, 360)), axis=0)
+    return range
 
-points_arrivee = D + (d_t / 3600 / 60 * vit_noeuds * (np.sin(range_radian) / math.cos(D.imag * math.pi / 180)  -             np.cos(range_radian) * 1j))
+def range_cap(direction_objectif, direction_vent, a_vue_objectif, angle_pres, angle_var):
 
-print ('dx',d_t / 3600 / 60 * vit_noeuds *  (np.sin(range_radian) / math.cos(D.imag * math.pi / 180)))
-print('dy',d_t / 3600 / 60 * vit_noeuds*np.cos(range_radian))
-print ('sin cap',np.sin(range_radian))
+    # print ('direction_vent indice i',direction_vent)
+    # print('direction_objectif indice i', direction_objectif)
+    direction_vent, direction_objectif = int(direction_vent), int(direction_objectif)
+    cap1 = (direction_vent + angle_pres) % 360
+    cap2 = (direction_vent - angle_pres + 1) % 360
+    cap3 = (180 + direction_vent + angle_var) % 360
+    cap4 = (180 + direction_vent - angle_var + 1) % 360
+    cap5 = (direction_objectif - a_vue_objectif) % 360
+    cap6 = (direction_objectif + a_vue_objectif) % 360
 
-print (points_arrivee)
+    z1 = rangenavi(cap1, cap4)
+    z2 = rangenavi(cap3, cap2)
+    z3 = rangenavi(cap5, cap6)
+    range1 = np.intersect1d(z1, z3)
+    range2 = np.intersect1d(z2, z3)
+
+    rangetotal = np.concatenate((range1, range2), axis=0)
+    return rangetotal
+
+
+direction_objectif= 190
+direction_vent=50
+a_vue_objectif=45
+angle_pres=45
+angle_var=20
+
+
+
+
+range= range_cap(direction_objectif, direction_vent, a_vue_objectif, angle_pres, angle_var)
+
+print ('range' , range)
+
+
 
 
 
 
 
 #
-
+#
+#
+#
+# def polaire2_vect(polaires,vit_vent,angle_vent,tableau_caps):
+#     '''transformation tableau de caps en un point en tableau de donnees (twa , vit_vent)'''
+#     '''Pour une valeur de vent et un angle de vent déterminés'''
+#     ''' Retourne un tableau de vitesse polaires suivant le tableau de caps'''
+#
+#     donnees = np.zeros((len(tableau_caps),2))
+#     for k in range(len(tableau_caps)):
+#         twa = 180 - abs(((360 - angle_vent + tableau_caps[k]) % 360) - 180)
+#         donnees[k]=[twa,vit_vent]
+#     valeurs = interpn((y1, x1), polaires, donnees, method='linear')
+#     return valeurs
+#
+# def calcul_points(D, tp, d_t, angle_vent, vit_vent, range, polaires):
+#     '''tp temps au point D; d_t duree du deplacement en s ; angle du vent au point ; Vitesse du vent au point ; caps a simuler  ; polaires du bateau
+#     :rtype: object
+#     '''
+#     '''retourne un tableau points sous forme de valeurs complexes'''
+#     points_arrivee = np.zeros((range.shape),   dtype=complex)  # Init tableau   points d'arrivee sous forme complexe
+#     range_radian = ( 90-range) * math.pi / 180
+#     vit_noeuds = polaire2_vect(polaires, vit_vent, angle_vent, range)  # Vitesses suivant les differents caps
+#     points_arrivee = D + (d_t / 3600 / 60 * vit_noeuds * (np.sin(range_radian) / math.cos(D.imag * math.pi / 180)  -             np.cos(range_radian) * 1j))
+#
+#     return points_arrivee, tp + d_t
+#
+#
+# D=-5.9150-46.0386*1j
+# tp=0
+# d_t=300
+# vit_noeuds=6.66
+# angle_vent=32.2
+# vit_vent=8.96
+# range=[252*math.pi/180,253*math.pi/180]
+# range_radian=range*math.pi/180
+#
+#
+#
+#
+#
+# points_arrivee = D + (d_t / 3600 / 60 * vit_noeuds * (np.sin(range_radian) / math.cos(D.imag * math.pi / 180)  -             np.cos(range_radian) * 1j))
+#
+# print ('dx',d_t / 3600 / 60 * vit_noeuds *  (np.sin(range_radian) / math.cos(D.imag * math.pi / 180)))
+# print('dy',d_t / 3600 / 60 * vit_noeuds*np.cos(range_radian))
+# print ('sin cap',np.sin(range_radian))
+#
+# print (points_arrivee)
+#
+#
+#
+#
+#
+#
+#
 #
 # polaires=np.array([[
 #
