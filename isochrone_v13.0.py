@@ -78,39 +78,22 @@ def cplx(d):
     D = (d[0] + d[1] * 1j)
     return D
 
+def twa(cap, dvent):
+    twa = 180 - abs(((360 - dvent + cap) % 360) - 180)
+    return twa
 
-# def rangecap(direction_objectif, d_vent, angle_objectif, angle_twa_pres, angle_twa_ar):
-#     '''retourne le range des caps possibles '''
-#     '''on vise l'objectif sous un angle maxi de 2fois l angle objectif'''
-#     '''on exclut les twa trop au près ou trop au vent arriere'''
-#     d_vent, d_objectif = int(d_vent), int(angle_objectif)
-#     a = (d_objectif - angle_objectif)
-#     b = (d_objectif + angle_objectif) + 1
-#     c = (d_vent - angle_twa_pres)
-#     d = (d_vent + angle_twa_pres) + 1
-#     e = d_vent + 180 + angle_twa_ar + 1
-#     f = d_vent + 180 - angle_twa_ar
-#     #todo 10 a retransformer en 1
-#     rangecap = np.intersect1d(np.intersect1d((np.arange(a, b, 10)) % 360, (np.arange(d, c + 360,10)) % 360),
-#                               (np.arange(e, f + 360),10) % 360)
-#     return rangecap
-
-
-def calcul_points(D, tp, d_t, angle_vent, vit_vent, range, polaires):
+def calcul_points(D, tp, d_t, angle_vent, vit_vent, ranged, polaires):
     '''tp temps au point D; d_t duree du deplacement en s ; angle du vent au point ; Vitesse du vent au point ; caps a simuler  ; polaires du bateau  '''
     '''retourne un tableau points sous forme de valeurs complexes'''
-    points_arrivee = np.zeros((range.shape), dtype=complex)  # Init tableau   points d'arrivee sous forme complexe
-    range_radian = (-range + 90) * math.pi / 180
-    vit_noeuds = polaire2_vect(polaires, vit_vent, angle_vent, range)  # Vitesses suivant les differents caps
+    points_arrivee = np.zeros((ranged.shape), dtype=complex)  # Init tableau   points d'arrivee sous forme complexe
+    range_radian = (-ranged + 90) * math.pi / 180
+    vit_noeuds = polaire2_vect(polaires, vit_vent, angle_vent, ranged)  # Vitesses suivant les differents caps
     points_arrivee = D + (d_t / 3600 / 60 * vit_noeuds * (
-                np.cos(range_radian) / math.cos(D.imag * math.pi / 180) + np.sin(range_radian) * 1j))
+                np.cos(range_radian) / math.cos(D.imag * math.pi / 180) - np.sin(range_radian) * 1j))
     return points_arrivee, tp + d_t
 
 
-def deplacement(D, A):
-    '''retourne la distance et l'angle du deplacement entre le depart et l'arrivee'''
-    C = A - D
-    return np.abs(C), (90 - np.angle(C, deg=True))
+
 
 
 def deplacement2(D, A):
@@ -172,18 +155,18 @@ def f_isochrone(pt_init_cplx, temps_initial_iso):
     for i in range(pt_init_cplx.size):
 
         # print('deplacement(pt_init_cplx[i], A)[1]',deplacement(pt_init_cplx[0][i], A)[1])
-        range_caps = range_cap(deplacement(pt_init_cplx[0][i], A)[1], angle_vent[i], angle_objectif, angle_twa_pres,
+        range_caps = range_cap(deplacement2(pt_init_cplx[0][i], A)[1], angle_vent[i], angle_objectif, angle_twa_pres,
                                angle_twa_ar)  # Calcul des caps a etudier
         # print('range_caps',range_caps)
 
-        n_pts_x, nouveau_temps = calcul_points(pt_init_cplx[0][i], temps_initial_iso, delta_temps, angle_vent[i],
-                                               vit_vent[i], range_caps,
-                                               polaires)  # Calcul de la nouvelle serie generale de points sous forme de complexe
+        n_pts_x, nouveau_temps = calcul_points(pt_init_cplx[0][i], temps_initial_iso, delta_temps, angle_vent[i],vit_vent[i], range_caps, polaires)  # Calcul de la nouvelle serie generale de points sous forme de complexe
+
+
 
         # la tous les nouveaux points sont calcules maintenant on expurge et on stocke
         for j in range(len(n_pts_x)):
-            cap_arrivee = deplacement(n_pts_x[j], A)[1]
-            distance_arrivee = deplacement(n_pts_x[j], A)[0]
+            cap_arrivee = deplacement2(n_pts_x[j], A)[1]
+            distance_arrivee = deplacement2(n_pts_x[j], A)[0]
             points_calcul.append(
                 [n_pts_x[j].real, n_pts_x[j].imag, numero_iso, numero_premier_point + i + 1, 1, distance_arrivee,
                  cap_arrivee])
@@ -206,8 +189,12 @@ def f_isochrone(pt_init_cplx, temps_initial_iso):
         pointsx[i][6] = int(pointsx[i][6] / coeff2)  # on retablit le cap en valeur
         dico[pointsx[i][4]] = pointsx[i][3]
 
+
+
+
+
         # a ce moment la on a le catalogue de tous les nouveaux points
-        # todo cette partie pourrait etre traitee en vectoriel hors de la boucle
+        # todo la partie a suivre pourrait etre traitee en vectoriel hors de la boucle
 
         # on cherche les temps vers l'arrivee des nouveaux points
         vit_vent, angle_vent = prevision(tig, GR, nouveau_temps, pointsx[i][1], pointsx[i][0])
@@ -261,7 +248,7 @@ D = cplx(d)  # transformation des tuples des points en complexes
 A = cplx(a)
 
 # Initialisation du tableau des points d'isochrones
-isochrone = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
+isochrone = [[D.real, D.imag, 0, 0, 0, deplacement2(D, A)[0], deplacement2(D, A)[1]]]
 
 dt1 = np.ones(36) * 3600  # intervalles de temps toutes les 10mn pendant une heure puis toutes les heures
 dt2 = np.ones(378) * 3600
@@ -310,6 +297,7 @@ but = False
 while but == False:
     # i=0
     # while i<1:
+    #todo *********************************************************************
     pt1_cpx, temps, but, indice = f_isochrone(pt1_cpx, temps)
     # i+=1
     # et on on les trace

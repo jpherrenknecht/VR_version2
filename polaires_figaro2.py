@@ -5,7 +5,8 @@ import  numpy  as np
 # angle maxi au var 160°
 angle_twa_pres = 36
 angle_twa_ar = 20
-
+angle_pres = 36
+angle_var = 20
 x1=np.array([0,4,6,8,10,12,14,16,20,25,30,35,40,50,60,70])
 y1=np.array([0,10,30,36,40,44,45,50,52,60,70,80,90,95,100,105,110,120,125,130,135,140,143,146,150,155,158,160,165,170,180])
 
@@ -69,7 +70,8 @@ def polaire(polaires, vit_vent, twa): # polaire simple
 
 
 def polaire2_vect(polaires,tws,twd,HDG):
-    '''ici un seul point avec tws twd plusieurs caps'''
+    '''ici un seul point avec une seule tws twd
+     mais plusieurs caps'''
     # on ajuste les tableaux TW et TWD à HDG
     l=len(HDG)
     TWD = (np.ones(l)*twd)
