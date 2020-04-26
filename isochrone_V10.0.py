@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import xarray as xr
 import pandas as pd
-from uploadgrib import *
+from Uploadgrib import *
 from polaires_imoca import *
 from operator import itemgetter
 
@@ -36,7 +36,7 @@ tic = time.time()
 angle_objectif = 45
 angle_twa_pres = 40
 angle_twa_ar = 20
-delta_temps = 3600 * 3  # duree du deplacement en s: temps entre 2 isochrones
+delta_temps = 3600  # duree du deplacement en s: temps entre 2 isochrones
 
 dico = {}
 
@@ -88,7 +88,7 @@ def calcul_points(D, tp, d_t, angle_vent, vit_vent, range, polaires):
     points_arrivee = np.zeros((range.shape),   dtype=complex)  # Init tableau   points d'arrivee sous forme complexe
     range_radian = (-range + 90) * math.pi / 180
     vit_noeuds = polaire2_vect(polaires, vit_vent, angle_vent, range)  # Vitesses suivant les differents caps
-    latitude = D.imag  # Latitude du pointpour calculer le deplacement sur le parallele avec le cos
+
     points_arrivee = D + (d_t / 3600 / 60 * vit_noeuds * (
             np.cos(range_radian) / math.cos(D.imag * math.pi / 180) + np.sin(range_radian) * 1j))
     # print('cos du deplacement',np.cos(range_radian))
@@ -137,7 +137,7 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
     points_calcul = []
     caps_x = []
     tab_t = []  # tableau des temps vers l arrivee en ligne directe
-    delta_temps = 3600
+    delta_temps = 3600/3
     numero_iso = int(isochrone[-1][2] + 1)
     numero_dernier_point = (isochrone[-1][4])  # dernier point isochrone precedent
     numero_premier_point = isochrone[-1][4] - pt_init_cplx.size
@@ -146,7 +146,7 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
     print(' Isochrone N° {} heure {}'.format(numero_iso,t_iso_formate)  )
 
     for i in range(pt_init_cplx.size):
-        vit_vent, angle_vent = prevision(tig, U, V, temps_initial_iso, pt_init_cplx[i].imag, pt_init_cplx[
+        vit_vent, angle_vent = prevision(tig,GR, temps_initial_iso, pt_init_cplx[i].imag, pt_init_cplx[
             i].real)  # Calcul  prevision meteo au point  i et au temps_initial_iso
         range_caps = range_cap(deplacement(pt_init_cplx[i], A)[1], angle_vent, angle_objectif, angle_twa_pres,
                                angle_twa_ar)  # Calcul des caps a etudier
@@ -175,7 +175,7 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
         points_calcul[j][6] = int(coeff2 * points_calcul[j][6])
 
     pointsx = sorted(points_calcul, key=itemgetter(6, 5))  # tri de la liste de points suivant la direction (indice  " \
-
+    pointsx =np.asarray(pointsx)
     for i in range(len(pointsx) - 1, 0, -1):  # ecremage
         if (pointsx[i][6]) == (pointsx[i - 1][6]):
             pointsx = np.delete(pointsx, i, 0)
@@ -186,8 +186,10 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
         dico[pointsx[i][4]] = pointsx[i][3]
 
         # on cherche les temps vers l'arrivee des nouveaux points
-        vit_vent, angle_vent = prevision(tig, U, V, nouveau_temps, pointsx[i][1], pointsx[i][0])
+        vit_vent, angle_vent = prevision(tig, GR, nouveau_temps, pointsx[i][1], pointsx[i][0])
         twa = 180 - abs(((360 - angle_vent + pointsx[i][6]) % 360) - 180)
+
+
         resultat = polaire(polaires, vit_vent, twa)
         d_a = pointsx[i][5]
         t_a = 60 * d_a / resultat
@@ -218,16 +220,19 @@ def f_isochrone(pt_init_cplx, temps_initial_iso, isochrone):
 
 # ************************************   Initialisations      **********************************************************
 
+# 1 : x , 2 y du point , 3 N°iso, 4 N° pt mere , 5 N° pt , 6 distance a l'arrivee , 7 cap a l'arrivee, 8 polaire depuis le pt precedent , 9 twa depuis le point precedent , 10 cap depuis le point precedent
+
+
 
 
 
 # Depart
-latitude_d = '42-06-59-N'
-longitude_d = '60-21-50-W'
+latitude_d = '15-33-00-N'
+longitude_d = '68-31-00-W'
 
 # Arrivee
-latitude_a = '35-00-00-N'
-longitude_a = '63-00-00-W'
+latitude_a = '12-10-00-N'
+longitude_a = '68-56-00-W'
 
 d = chaine_to_dec(latitude_d, longitude_d)  # conversion des latitudes et longitudes en tuple
 a = chaine_to_dec(latitude_a, longitude_a)
@@ -236,7 +241,9 @@ D = cplx(d)  # transformation des tuples des points en complexes
 A = cplx(a)
 Depart = np.array([[d[0] + d[1] * 1j]])    # le depart est mis sous forme d'un tableau complexe
 # Initialisation du tableau des points d'isochrones
-isochrone = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
+isochrone  = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
+isochrone2 = [[D.real, D.imag, 0, 0, 0, deplacement(D, A)[0], deplacement(D, A)[1]]]
+
 print ('depart',d)
 print ('arrivee',a)
 
@@ -244,11 +251,14 @@ print ('arrivee',a)
 
 t = time.localtime()
 instant = time.time()
-filenamehd5=chargement_grib()
-tig, U, V = ouverture_fichier(filenamehd5)
-instant_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(instant))
+filename=chargement_grib()
+tig, GR = ouverture_fichier(filename)
 
-vit_vent_n, angle_vent=prevision(tig, U, V, instant, d[1], d[0])
+
+
+instant_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(instant))
+vit_vent_n, angle_vent = prevision(tig, GR, instant, d[1], d[0])
+
 
 # Impression des resultats
 print('Date et Heure du grib  en UTC  :', time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(tig)))
@@ -281,10 +291,9 @@ pt1_cpx = Depart
 temps=instant
 but = False
 while but == False:
-    # for k in range (5):
     pt1_cpx, temps, isochrone, but, indice = f_isochrone(pt1_cpx, temps, isochrone)
-    # print ('But atteint',but)
-    plot2 = plt.plot(pt1_cpx.real, -pt1_cpx.imag, color = 'red', linewidth = 1)
+    #print ('pt1_cpx.shape',pt1_cpx.shape)
+    plot2 = plt.plot(pt1_cpx.real, -pt1_cpx.imag, color = 'red', linewidth = 1)      # Tracage isochrone
 
 
 
@@ -295,16 +304,16 @@ a = int(indice)                 #indice du point de la route la plus courte
 plt.plot(isochrone[a][0], -isochrone[a][1], 'k.')  # trace de l'arrivee
 n=int(isochrone[-1][2])
 
-print('\nRoute à suivre')
+#print('\nRoute à suivre')
 
 route=[]
 for i in range(n):
     a = int(dico[a])
     route.append(a)      # route contient les indices successifs des points a emprunter a l'envers
 
-print('route',route)
+#print('route',route)
 route.reverse()
-print ('reverse',route)
+#print ('reverse',route)
 
 chemin = np.zeros(len(route), dtype=complex)  # initialise le np array de complexes qui recoit les donnees
 
@@ -314,7 +323,7 @@ for i in range(len(route)):
     n=route[i]
     pointsx.append(isochrone[n][0])
     pointsy.append(-isochrone[n][1])
-    print ('points:{} x={} y={}'.format(n,isochrone[n][0],-isochrone[n][1]))
+    #print ('points:{} x={} y={}'.format(n,isochrone[n][0],-isochrone[n][1]))
 
 plt.plot(pointsx,pointsy)
 

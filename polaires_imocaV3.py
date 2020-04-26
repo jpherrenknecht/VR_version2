@@ -1,9 +1,6 @@
 from scipy.interpolate import RegularGridInterpolator,interp2d,interpn
 import  numpy  as np
 
-# angle mini au près 36°
-# angle maxi au var 160°
-
 
 #definition des graduations sur les axes x y
 x1=np.array([0,2,4,5,8,10,12,14,16,18,20,22,24,25,26,28,30,32,35,40,50,60,70])   #les vents
@@ -57,8 +54,7 @@ def twa(cap, dvent):
     return twa
 
 def polaire2_vect(polaires,vit_vent,angle_vent,tableau_caps):
-    '''transformation tableau de caps en un point en tableau de donnees (twa , vit_vent)'''
-    ''' Retourne un tableau de vitesse polaires suivant le tableau de caps'''
+    #transformation tableau de caps en un point en tableau de donnees (twa , vit_vent)
     donnees = np.zeros((len(tableau_caps),2))
     for k in range(len(tableau_caps)):
         twa = 180 - abs(((360 - angle_vent + tableau_caps[k]) % 360) - 180)
@@ -66,34 +62,17 @@ def polaire2_vect(polaires,vit_vent,angle_vent,tableau_caps):
     valeurs = interpn((y1, x1), polaires, donnees, method='linear')
     return valeurs
 
-def polaire(polaires, vit_vent, twa): # polaire simple
-    donnees= [twa, vit_vent]
-    valeur = interpn((y1, x1), polaires, donnees, method='linear')
-
-    return valeur
-
-
 
 if __name__ == '__main__':
     vit_vent = 19
     angle_vent = 100
     #cap = 160
     caps = np.array([140, 141, 142])
-
+    #twa = 180 - abs(((360 - angle_vent + cap) % 360) - 180)
 
 
     res = polaire2_vect(polaires, vit_vent, angle_vent, caps)
 
     print ('Vitesse du vent {} noeuds , angle du vent {}° ' .format(vit_vent,angle_vent))
     print ('caps :', caps)
-    print('Polaires',res)
-
-
-    print ('Version simple')
-    cap=140
-    twa = 180 - abs(((360 - angle_vent + cap) % 360) - 180)
-    res = polaire(polaires, vit_vent, twa)
-
-    print ('Vitesse du vent {} noeuds , angle du vent {}° ' .format(vit_vent,angle_vent))
-    print ('caps :', cap)
     print('Polaires',res)
