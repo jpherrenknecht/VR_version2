@@ -82,12 +82,19 @@ def twa(cap, dvent):
     twa = 180 - abs(((360 - dvent + cap) % 360) - 180)
     return twa
 
-def calcul_points(D, tp, d_t, angle_vent, vit_vent, ranged, polaires):
+def deplacement2(D, d_t, HDG, VT):
+    '''D Depart point complexe ,d_t duree en s  , HDG tableau de caps en° ,vT Tableau de vitesses Polaires en Noeuds'''
+    '''Fonctionne avec des np.array'''
+    HDG_R = HDG * math.pi / 180
+    A = D + (d_t / 3600 / 60 * VT * (np.sin(HDG_R) / math.cos(D.imag * math.pi / 180) - np.cos(HDG_R) * 1j))
+    return A
+
+def calcul_points(D, tp, d_t, TWD, vit_vent, ranged, polaires):
     '''tp temps au point D; d_t duree du deplacement en s ; angle du vent au point ; Vitesse du vent au point ; caps a simuler  ; polaires du bateau  '''
     '''retourne un tableau points sous forme de valeurs complexes'''
     points_arrivee = np.zeros((ranged.shape), dtype=complex)  # Init tableau   points d'arrivee sous forme complexe
     range_radian = (-ranged + 90) * math.pi / 180
-    vit_noeuds = polaire2_vect(polaires, vit_vent, angle_vent, ranged)  # Vitesses suivant les differents caps
+    vit_noeuds = polaire2_vect(polaires, vit_vent, TWD, ranged)  # Vitesses suivant les differents caps
     points_arrivee = D + (d_t / 3600 / 60 * vit_noeuds * (
                 np.cos(range_radian) / math.cos(D.imag * math.pi / 180) - np.sin(range_radian) * 1j))
     return points_arrivee, tp + d_t
@@ -96,7 +103,7 @@ def calcul_points(D, tp, d_t, angle_vent, vit_vent, ranged, polaires):
 
 
 
-def deplacement2(D, A):
+def dist_cap(D, A):
     '''retourne la distance et l'angle du deplacement entre le depart et l'arrivee'''
     C = A - D
     return np.abs(C), (450 + np.angle(C, deg=True)) % 360
@@ -149,24 +156,24 @@ def f_isochrone(pt_init_cplx, temps_initial_iso):
     numero_premier_point = isochrone[-1][4] - pt_init_cplx.size
 
     # on recupere toutes les previsions meteo d'un coup pour l'ensemble des points de depart
-    vit_vent, angle_vent = prevision_tableau(tig, GR, temps_initial_iso, pt_init_cplx)
+    TWS, TWD = prevision_tableau(tig, GR, temps_initial_iso, pt_init_cplx)
 
     # pour chaque point de l'isochrone precedent  donnés en entrée (isochrone précédent)
     for i in range(pt_init_cplx.size):
 
         # print('deplacement(pt_init_cplx[i], A)[1]',deplacement(pt_init_cplx[0][i], A)[1])
-        range_caps = range_cap(deplacement2(pt_init_cplx[0][i], A)[1], angle_vent[i], angle_objectif, angle_twa_pres,
+        HDG = range_cap(dist_cap(pt_init_cplx[0][i], A)[1], TWD[i], angle_objectif, angle_twa_pres,
                                angle_twa_ar)  # Calcul des caps a etudier
         # print('range_caps',range_caps)
-
-        n_pts_x, nouveau_temps = calcul_points(pt_init_cplx[0][i], temps_initial_iso, delta_temps, angle_vent[i],vit_vent[i], range_caps, polaires)  # Calcul de la nouvelle serie generale de points sous forme de complexe
-
-
+        #TWA = twa(HDG, TWD[i])
+        VT = polaire2_vect(polaires, TWS[i], TWD[i], HDG)
+        n_pts_x = deplacement2(pt_init_cplx[0][i], delta_temps, HDG, VT)
+        nouveau_temps = temps_initial_iso + delta_temps
 
         # la tous les nouveaux points sont calcules maintenant on expurge et on stocke
         for j in range(len(n_pts_x)):
-            cap_arrivee = deplacement2(n_pts_x[j], A)[1]
-            distance_arrivee = deplacement2(n_pts_x[j], A)[0]
+            cap_arrivee = dist_cap(n_pts_x[j], A)[1]
+            distance_arrivee = dist_cap(n_pts_x[j], A)[0]
             points_calcul.append(
                 [n_pts_x[j].real, n_pts_x[j].imag, numero_iso, numero_premier_point + i + 1, 1, distance_arrivee,
                  cap_arrivee])
@@ -198,8 +205,8 @@ def f_isochrone(pt_init_cplx, temps_initial_iso):
         # todo la partie a suivre pourrait etre traitee en vectoriel hors de la boucle
 
         # on cherche les temps vers l'arrivee des nouveaux points
-        vit_vent, angle_vent = prevision(tig, GR, nouveau_temps, pointsx[i][1], pointsx[i][0])
-        twa = 180 - abs(((360 - angle_vent + pointsx[i][6]) % 360) - 180)
+        vit_vent, TWD = prevision(tig, GR, nouveau_temps, pointsx[i][1], pointsx[i][0])
+        twa = 180 - abs(((360 - TWD + pointsx[i][6]) % 360) - 180)
 
         resultat = polaire(polaires, vit_vent, twa)
         d_a = pointsx[i][5]
@@ -235,12 +242,12 @@ tig, GR = ouverture_fichier(filename)
 temps = instant
 
 # Depart
-latitude_d = '35-04-00-N'
-longitude_d = '13-46-00-W'
+latitude_d = '28-59-24-N'
+longitude_d = '17-35-00-W'
 
 # Arrivee
-latitude_a = '18-13-00-N'
-longitude_a = '54-18-00-W'
+latitude_a = '17-53-00-N'
+longitude_a = '62-49-00-W'
 
 d = chaine_to_dec(latitude_d, longitude_d)  # conversion des latitudes et longitudes en tuple
 a = chaine_to_dec(latitude_a, longitude_a)
@@ -249,7 +256,7 @@ D = cplx(d)  # transformation des tuples des points en complexes
 A = cplx(a)
 
 # Initialisation du tableau des points d'isochrones
-isochrone = [[D.real, D.imag, 0, 0, 0, deplacement2(D, A)[0], deplacement2(D, A)[1]]]
+isochrone = [[D.real, D.imag, 0, 0, 0, dist_cap(D, A)[0], dist_cap(D, A)[1]]]
 
 dt1 = np.ones(36) * 3600  # intervalles de temps toutes les 10mn pendant une heure puis toutes les heures
 dt2 = np.ones(378) * 3600
@@ -263,7 +270,7 @@ print('Arrivee: Latitude {:4.2f}  Longitude {:4.2f}'.format(a[1], a[0]))
 
 
 instant_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(instant))
-vit_vent_n, angle_vent = prevision(tig, GR, instant, D.imag, D.real)
+vit_vent_n, TWD = prevision(tig, GR, instant, D.imag, D.real)
 
 # Impression des resultats
 
@@ -271,7 +278,7 @@ vit_vent_n, angle_vent = prevision(tig, GR, instant, D.imag, D.real)
 print('Date et Heure du grib  en UTC  :', time.strftime(" %d %b %Y %H:%M:%S ", time.gmtime(tig)))
 print('\nLe {} heure locale Pour latitude {:6.2f} et longitude{:6.2f} '.format(instant_formate, D.real, D.imag))
 print('\tVitesse du vent {:6.3f} Noeuds'.format(vit_vent_n))
-print('\tAngle du vent   {:6.1f} °'.format(angle_vent))
+print('\tAngle du vent   {:6.1f} °'.format(TWD))
 print()
 
 # ***********************************Calcul des isochrones et Trace du graphique ********************************************
@@ -333,7 +340,7 @@ temps_cum[-1] = temps_cum[-2] + t_v_ar_h * 3600  # le dernier terme est le temps
 TWS_ch, TWD_ch = prevision_tableau2(GR, temps_cum, chemin)
 
 # distance et angle d un point au suivant
-distance, cap1 = deplacement2(chemin[0:-1], chemin[1:])
+distance, cap1 = dist_cap(chemin[0:-1], chemin[1:])
 
 # on rajoute un 0 pour la distance arrrivee et l angle arrivee
 dist = np.append(distance, [0])
@@ -350,15 +357,15 @@ chx = chemin.real.reshape((1, -1))
 chy = chemin.imag.reshape((1, -1))
 temps_pts = temps_cum.reshape((1, -1))
 vitesse = TWS_ch.reshape((1, -1))
-angle_vent = TWD_ch.reshape((1, -1))
+TWD = TWD_ch.reshape((1, -1))
 cap = HDG_ch.reshape((1, -1))
 twa = TWA_ch.reshape((1, -1))
 pol = POL_ch.reshape((1, -1))
 
 # print('twa',twa)
 
-# tabchemin : x,y,vit vent ,angle_vent,cap vers point suivant twa vers point suivant
-chem = np.concatenate((chx.T, chy.T, temps_pts.T, vitesse.T, angle_vent.T, cap.T, twa.T, pol.T), axis=1)
+# tabchemin : x,y,vit vent ,TWD,cap vers point suivant twa vers point suivant
+chem = np.concatenate((chx.T, chy.T, temps_pts.T, vitesse.T, TWD.T, cap.T, twa.T, pol.T), axis=1)
 # print ('tabchemin \n',chem)
 # # Exportation en pandas
 # indexiso=np.arange(l)

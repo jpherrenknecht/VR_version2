@@ -96,10 +96,23 @@ def f_isochrone(pts_init_cplx, temps_initial_iso):
     ''' Calcule le nouvel isochrone a partir d'un tableau de points pt2cplx tableau numpy de cplx'''
     ''' deltatemps, tig , U, V sont supposees etre des variables globales'''
     ''' Retourne les nouveaux points el le nouveau temps et implemente le tableau general des isochrones'''
-    global isochrone, intervalles, t_v_ar_h
+
+    global isochrone, intervalles, t_v_ar_h,dico
     numero_iso = int(isochrone[-1][2] + 1)
     delta_temps = intervalles[numero_iso]  # Ecart de temps entre anciens points et nouveaux en s
     t_iso_formate = time.strftime(" %d %b %Y %H:%M:%S ", time.localtime(temps_initial_iso + delta_temps))
+    but = False
+    points_calcul = []
+    caps_x = []
+    tab_t = []  # tableau des temps vers l arrivee en ligne directe
+    print(' Isochrone N° {}  {}'.format(numero_iso, t_iso_formate))
+    numero_dernier_point = (isochrone[-1][4])  # dernier point isochrone precedent
+    numero_premier_point = isochrone[-1][4] - pts_init_cplx.size
+
+
+
+
+
 
     # on recupere toutes les previsions meteo d'un coup pour l'ensemble des points de depart
     print ('tig et t initial iso ',tig,temps_initial_iso)
@@ -119,7 +132,7 @@ def f_isochrone(pts_init_cplx, temps_initial_iso):
             print('Problème de TWA')
         else:
             print('pas de pb de TWA')
-        print ('valeur pour un point',TWS[i], TWD[i], HDG)
+        print ('valeur pour un point TWS TWD HDG\n',TWS[i], TWD[i], HDG)
 
     # calcul des polaires vT
         VT=polaire2_vect(polaires, TWS[i], TWD[i], HDG)
@@ -131,25 +144,42 @@ def f_isochrone(pts_init_cplx, temps_initial_iso):
         print(' temps_initial_iso',temps_initial_iso)
         print('TWD[i]',TWD[i])
         print('TWS[i]', TWS[i])
-        deplacement2(pts_init_cplx[0][i], delta_temps, HDG, VT)
+        n_pts=deplacement2(pts_init_cplx[0][i], delta_temps, HDG, VT)
+        print('n_pts\n',n_pts)
+        nouveau_temps=temps_initial_iso+delta_temps
+        for j in range(len(n_pts)):
+            distance_arrivee = dist_cap(n_pts[j], A)[0]
+            cap_arrivee = dist_cap(n_pts[j], A)[1]
 
-      #  n_pts_x, nouveau_temps=calcul_points(pts_init_cplx[0][i], temps_initial_iso, delta_temps, TWD[i],TWS[i] , HDG, VT)
 
-       # print ('Nouveaux points\n ',n_pts_x)
+            points_calcul.append(
+                [n_pts[j].real, n_pts[j].imag, numero_iso, numero_premier_point + i + 1, 1, distance_arrivee,
+                 cap_arrivee])
+            caps_x.append(cap_arrivee)
 
+    coeff2 = 50 / (max(caps_x) - min(caps_x))  # coefficient pour ecremer et garder 50 points
 
+    # print ('caps_x',caps_x)
+    # print('coeff2',coeff2)
 
+    for j in range(len(points_calcul)):  # partie ecremage
+        points_calcul[j][6] = int(coeff2 * points_calcul[j][6])
 
-    but = False
-    points_calcul = []
-    caps_x = []
-    tab_t = []  # tableau des temps vers l arrivee en ligne directe
-    print(' Isochrone N° {}  {}'.format(numero_iso, t_iso_formate))
-    numero_dernier_point = (isochrone[-1][4])  # dernier point isochrone precedent
-    numero_premier_point = isochrone[-1][4] - pts_init_cplx.size
+    pointsx = sorted(points_calcul, key=itemgetter(6, 5))  # tri de la liste de points suivant la direction (indice  " \
+    pointsx = np.asarray(pointsx)
+    print ('pointsx    ',pointsx)
+    print('pointsx.shape',pointsx.shape)
 
-    # on recupere toutes les previsions meteo d'un coup pour l'ensemble des points de depart
-    vit_vent, angle_vent = prevision_tableau(tig, GR, temps_initial_iso, pts_init_cplx)
+    for i in range(len(pointsx) - 1, 0, -1):  # ecremage
+        if (pointsx[i][6]) == (pointsx[i - 1][6]):
+            pointsx = np.delete(pointsx, i, 0)
+    print('pointsx.shape apres ecremage', pointsx.shape)
+    for i in range(len(pointsx)):  # renumerotation
+        pointsx[i][4] = i + numero_dernier_point + 1
+        pointsx[i][6] = int(pointsx[i][6] / coeff2)  # on retablit le cap en valeur
+
+        dico[pointsx[i][4]] = pointsx[i][3]
+    print('points selectionnes', pointsx)
 
     return None
 
@@ -175,9 +205,9 @@ if __name__ == '__main__':
     # Initialisation du tableau des points d'isochrones
     isochrone = [[D.real, D.imag, 0, 0, 0, dist_cap(D, A)[0], dist_cap(D, A)[1]]]
     print('D',D)
-    D2=-15-10*1j
+    D2=-15-29*1j
     pts_init_cplx = np.array([[D  ,D2  ]])
-
+    dico = {}
 
 
 
