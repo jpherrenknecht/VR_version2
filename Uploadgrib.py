@@ -41,7 +41,7 @@ def chainetemps_to_int(chainetemps):
     return t_s_local, day, month, year, hour, mins, secs, date, strhour, formate_local, t_s_utc
 
 
-def chaine_to_dec(latitude, longitude):
+def chaine_to_dec_old(latitude, longitude):
     ''' Transforme les chaines latitude et longitude en un tuple (x,y) '''
     degre = int(latitude[0:2])
     minutes = int(latitude[3:5])
@@ -57,7 +57,22 @@ def chaine_to_dec(latitude, longitude):
         long = -long
 
     return (long, lat)
+def chaine_to_dec(latitude, longitude):
+    ''' Transforme les chaines latitude et longitude en un tuple (x,y) '''
+    degre = int(latitude[0:3])
+    minutes = int(latitude[4:6])
+    secondes = int(latitude[7:9])
+    lat = degre + minutes / 60 + secondes / 3600
+    if latitude[10] == 'N':
+        lat = -lat
+    degre = int(longitude[0:3])
+    minutes = int(longitude[4:6])
+    secondes = int(longitude[7:9])
+    long = degre + minutes / 60 + secondes / 3600
+    if longitude[10] == 'W':
+        long = -long
 
+    return (long, lat)
 
 def chargement_grib():
     '''Charge le grib a la date indiquée et le sauve en type tableau de complexes sous format hd5'''
@@ -152,6 +167,9 @@ def prevision(tig, GR, tp, latitude, longitude):
     itemp = (tp - tig) / 3600 / 3
     ilati = (latitude + 90)
     ilong = (longitude) % 360
+
+    #print ('indices',itemp,ilati,ilong )
+
     vcplx = fn3((itemp, ilati, ilong))
     #print('vcplx',vcplx)
     vit_vent_n = np.abs(vcplx) * 1.94384
@@ -198,10 +216,12 @@ def prevision_tableau2 (GR,temp,point):
 if __name__ == '__main__':
     filename = chargement_grib()
     tig, GR = ouverture_fichier(filename)
-
     # Depart
-    latitude_d = '39-00-00-N'
-    longitude_d = '67-00-00-W'
+    latitude_d = '021-44-19-N'
+    longitude_d = '160-23-01-W'
+    # # Depart
+    # latitude_d = '39-00-00-N'
+    # longitude_d = '67-00-00-W'
     # Arrivee
     latitude_a = '12-10-00-N'
     longitude_a = '65-00-00-W'
@@ -211,8 +231,9 @@ if __name__ == '__main__':
 
     dateprev_s = chainetemps_to_int(dateprev)[10]
     dateprev_formate = chainetemps_to_int(dateprev)[9]
-    d = chaine_to_dec(latitude_d, longitude_d)  # co
 
+    d = chaine_to_dec(latitude_d, longitude_d)  # co
+    print ('d :',d)
 
 
 # version avec temps instantane
