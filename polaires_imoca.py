@@ -80,6 +80,12 @@ def polaire3_vect(polaires,TWS,TWD,HDG):
 
 if __name__ == '__main__':
 
+    print(x1.shape)
+    print(y1.shape)
+    print(polaires.shape)
+
+
+
 
     tws=12
     twd=150
